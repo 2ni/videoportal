@@ -1,7 +1,7 @@
 const videoObject = document.querySelector("#video-holder video")
 if (typeof startTime !== "undefined" && startTime) {
   videoObject.currentTime = startTime
-} else if (window.localStorage.getItem(movie) !== null) {
+} else if (typeof movie !== "undefined" && window.localStorage.getItem(movie) !== null) {
   const lastTime = window.localStorage.getItem(movie)
   videoObject.currentTime = lastTime
 }
@@ -77,19 +77,3 @@ window.addEventListener("resize", (event) => {
     }, 3000)
   }
 })
-
-/*
-overlayButton.addEventListener("click", (event) => {
-  const isFullscreen = document.fullScreen || document.webkitIsFullScreen || document.mozFullScreen || document.msFullScreen || false
-  const elm = videoObject
-  const requestFullScreen = elm.requestFullscreen || elm.mozRequestFullScreen || elm.webkitRequestFullScreen || elm.msRequestFullscreen
-  const cancelFullScreen = document.exitFullscreen || document.mozCancelFullScreen || document.webkitExitFullscreen || document.msExitFullscreen
-
-  if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-    requestFullScreen.call(elm)
-  }
-  else {
-    cancelFullScreen()
-  }
-})
-*/

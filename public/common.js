@@ -11,11 +11,20 @@ const startWebsocket = (id) => {
     }
 
     ws.onmessage = ({ data }) => {
-      data = JSON.parse(data)
-      // custom event "clients"
+      try {
+        data = JSON.parse(data)
+      } catch (e) {
+        data = {}
+      }
+      console.log("data from server", data)
+      if (data.remoteControl) {
+        const custEvt = new CustomEvent("remoteControl", { "detail": { ...{ "sourceId": data.sourceId}, ...data.remoteControl }})
+        document.querySelector("#video-holder video").dispatchEvent(custEvt)
+      }
+      // push custom event "clients" as visible clients changed
       if (data.clients) {
-        const eventNewClients = new CustomEvent("clients", { "detail": { "clients": data.clients }})
-        document.getElementById("clients-list").dispatchEvent(eventNewClients)
+        const custEvt = new CustomEvent("clients", { "detail": { "clients": data.clients }})
+        document.getElementById("clients-list").dispatchEvent(custEvt)
       }
     }
 
@@ -42,12 +51,30 @@ const makeid = (length) => {
    return result;
 }
 
+const generateBime = ({ length } = { length: 5 }) => {
+  const consonants = ["b", "c", "d", "f", "g", "h", "k", "p", "q", "r", "s", "t", "v", "w"]
+  const vowels = ["a", "e", "i", "o", "u"]
+  const blacklist = []
+
+  const letters = []
+  for (let index = 0; index < length; index++) {
+    const list = (index % 2) ? vowels : consonants
+    const letter = list[ Math.floor(Math.random() * list.length) ]
+    letters.push(letter)
+  }
+  const bime = letters.join("")
+  for (const badWord of blacklist) if (bime.indexOf(badWord) > -1) return generateBime({ length })
+  return bime
+}
+
 const main = () => {
   let id
-  if (window.localStorage.getItem("client-id") !== null) {
+  if (monitorId) {
+    id = monitorId
+  } else if (window.localStorage.getItem("client-id") !== null) {
     id = window.localStorage.getItem("client-id")
   } else {
-    id = makeid(10)
+    id = generateBime({ length: 7 })
     window.localStorage.setItem("client-id", id)
   }
   startWebsocket(id)

@@ -8,7 +8,6 @@ import { engine } from "express-handlebars"
 import fs, { promises as fsp} from "fs"
 import crypto from "crypto"
 import WebSocket, { WebSocketServer } from "ws"
-import { v4 as uuid } from "uuid"
 import url from "url"
 import filetype from "file-type"
 
@@ -94,7 +93,22 @@ app.get("/play/:movie([^$]+)", (req, res) => {
   })
 })
 
-// https://stackoverflow.com/questions/59352613/i-want-to-find-a-file-of-a-specific-extension-using-readdir-async-with-recursi
+app.get("/monitor/:monitorId?", (req, res) => {
+  const nonce = crypto.randomBytes(16).toString("base64")
+  res.render("monitor", {
+    nonce: nonce,
+    jsValues: {
+      monitorId: req.params.monitorId,
+    },
+    scripts: ["play.js", "monitor.js"],
+  })
+})
+
+/*
+ * https://stackoverflow.com/questions/59352613/i-want-to-find-a-file-of-a-specific-extension-using-readdir-async-with-recursi
+ *
+ * only show movies and dirs
+ */
 const walk = async (moviesDir, curPath, results={ movies: [], dirs: [] }) => {
   const files = await fsp.readdir(moviesDir, { withFileTypes: true })
   for (const file of files) {
