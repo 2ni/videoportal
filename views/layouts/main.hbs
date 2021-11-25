@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="shortcut icon" href="/favicon.png" type="image/x-icon">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Orbitron">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Videos</title>
+  <link href="/style.css" rel="stylesheet">
+</head>
+<body>
+  <div id="header">
+    <ul class="breadcrumb">
+      {{#each breadcrumbs}}
+      <li><a href="{{this.url}}">{{this.name}}</a></li>
+      {{/each}}
+    </ul>
+    <div class="client-control">
+      <div id="client-id"><input type="text"></input></div>
+      <div id="clients-list"><select name="clients"><option name="">---</option></select></div>
+    </div>
+  </div>
+  {{{body}}}
+  <div id="overlay"><button></button></div>
+  <div id="dbg"></div>
+  {{#if nonce}}
+    <script nonce="{{nonce}}">
+      {{#each jsValues}}
+        let {{@key}}="{{this}}";
+      {{/each}}
+    </script>
+  {{/if}}
+  <script src="/common.js"></script>
+  {{#each scripts}}
+    <script src="/{{this}}"></script>
+    {{/each}}
+</body>
+</html>
+

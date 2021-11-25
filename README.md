@@ -19,3 +19,10 @@ npm install
 ```
 npm run dev
 ```
+
+### Misc
+- https://www.npmjs.com/package/youtube-dl-exec
+- https://stackoverflow.com/questions/58873023/convert-file-with-any-extension-to-mp4-with-ffmpeg
+  - https://github.com/ytdl-org/youtube-dl/#format-selection-examples
+  - https://github.com/ytdl-org/youtube-dl/#format-selection-examples
+  - youtube-dl -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
