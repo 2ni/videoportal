@@ -47,33 +47,42 @@ const requestFullScreen = videoObject.requestFullscreen || videoObject.mozReques
 const cancelFullScreen = document.exitFullscreen || document.mozCancelFullScreen || document.webkitExitFullscreen || document.msExitFullscreen
 let timer
 
-overlayButton.addEventListener("click", event => {
+const showFullscreen = event => {
   overlay.style.display = "none"
   clearTimeout(timer)
   requestFullScreen.call(videoObject)
-})
+  overlay.removeEventListener("click", showFullscreen)
+}
 
 overlay.addEventListener("transitionend", event => {
   overlay.style.display = "none"
+  overlay.removeEventListener("click", showFullscreen)
   clearTimeout(timer)
 })
 
 // https://stackoverflow.com/questions/1649086/detect-rotation-of-android-phone-in-the-browser-with-javascript
 // https://developers.google.com/web/fundamentals/native-hardware/fullscreen/
-window.addEventListener("resize", (event) => {
-  const elm = videoObject
-  const isLandscape = (window.orientation && Math.abs(window.orientation) === 90) || (window.innerWidth > window.innerHeight)
-  const isNotFullscreen = !document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement
+if (typeof monitorMode === "undefined" || monitorMode !== "true") {
+  overlayButton.addEventListener("click", showFullscreen)
 
-  // only show overlay if not yet shown and if no input field has focus (or it'll trigger resize on mobile phones because of soft keyboard)
-  if (isLandscape && isNotFullscreen && overlay.style.display !== "inline" && !["INPUT", "SELECT"].includes(document.activeElement.tagName)) {
-    overlayButton.innerHTML = "Click for full screen"
-    overlay.style.display = "inline"
-    overlay.style.opacity = 1
+  window.addEventListener("resize", (event) => {
+    const elm = videoObject
+    const isLandscape = (window.orientation && Math.abs(window.orientation) === 90) || (window.innerWidth > window.innerHeight)
+    const isNotFullscreen = !document.fullscreenElement
+      && !document.mozFullScreenElement
+      && !document.webkitFullscreenElement
+      && !document.msFullscreenElement
 
-    timer = setTimeout(() => {
-      overlay.style.transition = "opacity " + 1 + "s";
-      overlay.style.opacity = 0
-    }, 3000)
-  }
-})
+    // only show overlay if not yet shown and if no input field has focus (or it'll trigger resize on mobile phones because of soft keyboard)
+    if (isLandscape && isNotFullscreen && overlay.style.display !== "inline" && !["INPUT", "SELECT"].includes(document.activeElement.tagName)) {
+      overlayButton.innerHTML = "Click for full screen"
+      overlay.style.display = "inline"
+      overlay.style.opacity = 1
+
+      timer = setTimeout(() => {
+        overlay.style.transition = "opacity " + 1 + "s";
+        overlay.style.opacity = 0
+      }, 3000)
+    }
+  })
+}

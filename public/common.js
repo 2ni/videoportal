@@ -1,13 +1,12 @@
-/*
- * websocket setup
- */
 let ws = null
+let trial = 0
 
-const startWebsocket = (id) => {
+const _startWebsocket = (id) => {
   if (id) {
     ws = new WebSocket("ws://" + window.location.hostname + ":" + window.location.port + "?id=" + id)
     ws.onopen = () => {
       console.log("connection opened", id)
+      trial = 0
     }
 
     ws.onmessage = ({ data }) => {
@@ -17,6 +16,7 @@ const startWebsocket = (id) => {
         data = {}
       }
       console.log("data from server", data)
+      // received command from remote control, eg start, stop, load movie
       if (data.remoteControl) {
         const custEvt = new CustomEvent("remoteControl", { "detail": { ...{ "sourceId": data.sourceId}, ...data.remoteControl }})
         document.querySelector("#video-holder video").dispatchEvent(custEvt)
@@ -24,31 +24,17 @@ const startWebsocket = (id) => {
       // push custom event "clients" as visible clients changed
       if (data.clients) {
         const custEvt = new CustomEvent("clients", { "detail": { "clients": data.clients }})
-        document.getElementById("clients-list").dispatchEvent(custEvt)
+        document.dispatchEvent(custEvt)
       }
     }
 
     ws.onclose = event => {
-      console.log("connection closed")
+      console.log("connection closed", trial)
+      trial++
       ws = null
-      setTimeout(startWebsocket.bind(null, id), 1000)
+      setTimeout(_startWebsocket.bind(null, id), trial < 3 ? 300 : 5000)
     }
   }
-}
-
-/*
- * handle client id
- */
-const idElm = document.querySelector("#client-id input")
-
-const makeid = (length) => {
-    var result           = "";
-    var characters       = "BCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    var charactersLength = characters.length;
-    for ( var i = 0; i < length; i++ ) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-   }
-   return result;
 }
 
 const generateBime = ({ length } = { length: 5 }) => {
@@ -67,56 +53,85 @@ const generateBime = ({ length } = { length: 5 }) => {
   return bime
 }
 
-const main = () => {
-  let id
-  if (monitorId) {
-    id = monitorId
-  } else if (window.localStorage.getItem("client-id") !== null) {
-    id = window.localStorage.getItem("client-id")
-  } else {
-    id = generateBime({ length: 7 })
-    window.localStorage.setItem("client-id", id)
+const handleWebsocket = (clientControlElm) => {
+  if (!clientControlElm) return
+
+  console.log("websockets activated")
+
+  const clientIdElm = clientControlElm.querySelector("#client-id input")
+  const clientListElm = clientControlElm.querySelector("#clients-list select")
+  const clientId = (typeof remoteId !== "undefined" && remoteId)
+    || (typeof monitorId !== "undefined" && monitorId)
+    || window.localStorage.getItem("client-id")
+    || generateBime({ length: 7 })
+
+  console.log("clientId", clientId)
+  if (!clientControlElm && !monitorId && window.localStorage.getItem("client-id") !== clientId) {
+    window.localStorage.setItem("client-id", clientId)
   }
-  startWebsocket(id)
-  idElm.setAttribute("value", id)
+
+  _startWebsocket(clientId)
+  clientIdElm.setAttribute("value", clientId)
+
+  // listen for new clients
+  document.addEventListener("clients", event => {
+    updateClientList(event, clientListElm, clientId)
+    if (event.detail.clients.list && event.detail.clients.list.includes(monitorId)) {
+      clientListElm.value = monitorId
+    }
+  })
+
+  clientIdElm.addEventListener("keydown", event => {
+    if (event.code === "Enter" || event.key === "Enter") {
+      event.target.blur()
+      const id = event.target.value
+      window.localStorage.setItem("client-id", id)
+      ws.onclose = () => {}
+      ws.close()
+      _startWebsocket(id)
+    }
+  })
 }
 
-idElm.addEventListener("keydown", event => {
-  if (event.code === "Enter" || event.key === "Enter") {
-    event.target.blur()
-    const id = event.target.value
-    window.localStorage.setItem("client-id", id)
-    ws.onclose = () => {}
-    ws.close()
-    startWebsocket(id)
-  }
-})
-
 /*
- * handle custom event "clients"
+ * update list of available clients
  */
-const clientsList = document.getElementById("clients-list")
-clientsList.addEventListener("clients", event => {
-  const selectObj = clientsList.querySelector("select")
-  if (event.detail.clients.list) {
-    console.log("new client list", event.detail.clients.list)
-    for (let i=1; i<selectObj.length; i++) { // never remove 1st item, as its ---
-      selectObj.remove(i)
-    }
-    event.detail.clients.list.forEach(id => {
-      selectObj.options.add(new Option(id, id))
-    })
+const updateClientList = (event, selectObj, clientId) => {
+  // add one client
+  if (event.detail.clients.add) {
+    console.log("clients add", event.detail.clients.add)
+    selectObj.options.add(new Option(event.detail.clients.add))
   }
-  if (event.detail.clients.remove) {
-    // console.log("remove client", event.detail.clients.remove)
-    for (let i=0; i<selectObj.length; i++) {
+  // remove one client
+  else if (event.detail.clients.remove) {
+    // 1st option is "----"
+    for (let i=1; i<selectObj.length; i++) {
       if (selectObj.options[i].value === event.detail.clients.remove[0]) {
-        console.log("removing client", selectObj.options[i].value)
+        console.log("clients: remove", selectObj.options[i].value)
         selectObj.remove(i)
         break;
       }
     }
   }
-})
+  // remove all clients, ie when reloading server
+  else if (event.detail.clients.removeall) {
+    // 1st option is "----"
+    for (let i=1; i<selectObj.length; i++) {
+      selectObj.remove(i)
+    }
+  }
+  // add whole client list
+  else if (event.detail.clients.list) {
+    console.log("clients: list", event.detail.clients.list)
+    for (let i=1; i<selectObj.length; i++) { // never remove 1st item, as its ---
+      selectObj.remove(i)
+    }
+    event.detail.clients.list.forEach(id => {
+      if (id !== clientId) {
+        selectObj.options.add(new Option(id, id))
+      }
+    })
+  }
+}
 
-main()
+handleWebsocket(document.querySelector(".client-control"))

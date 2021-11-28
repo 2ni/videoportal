@@ -23,7 +23,7 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use("/", express.static("public"))
 app.use(getBreadcrumbs)
-app.engine(".hbs", engine({ extname: ".hbs", helpers: handlebarsHelpers }))
+app.engine(".hbs", engine({ extname: ".hbs", helpers: handlebarsHelpers, partialsDir: "views/partials" }))
 app.set("view engine", ".hbs")
 app.set("views", "./views")
 // https://stackoverflow.com/questions/64534727/nodejs-err-ssl-protocol-error-in-http-server#answer-67580077
@@ -39,15 +39,40 @@ const server = app.listen(config.port, (err) => {
   if (err) {
     return console.log("something bad happened", err)
   }
-
-  console.log(timestamp(), `\n\nserver is listening on http://${os.hostname()}:${config.port}`)
+  console.log(`\n\n${timestamp()} server is listening on http://${os.hostname()}:${config.port}`)
 })
 
-server.on("upgrade", (request, socket, head) => {
+process.on("exit", () => {
+  wss.emit("exit")
+})
+
+process.on("SIGINT", () => {
+  process.exit()
+})
+
+// avoid multiple calls, eg on nodemon restart
+process.once("SIGUSR2", () => {
+  wss.emit("exit")
+})
+
+server.on("upgrade", async (request, socket, head) => {
+  // TODO https://github.com/websockets/ws/issues/377#issuecomment-462152231
+  let args = []
+  try {
+    // args = await verifyClient()
+  } catch (e) {
+    socket.destry()
+  }
+
   wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit("connection", ws, request)
+    wss.emit("connection", ws, request, ...args)
   })
 })
+
+
+/*****************************************************
+ * routes
+ *****************************************************/
 
 app.get("/movies/:movie([^$]+)", (req, res) => {
   const moviePath = path.join(config.moviesBasePath, req.params.movie)
@@ -85,9 +110,9 @@ app.get("/play/:movie([^$]+)", (req, res) => {
   res.set("Content-Security-Policy", "script-src 'self' 'nonce-" + nonce + "'")
   res.render("play", {
     nonce: nonce,
-    jsValues: {
+    jsInit: {
       movie: req.params.movie,
-      startTime: req.query.t
+      startTime: req.query.t,
     },
     scripts: ["play.js"]
   })
@@ -97,10 +122,26 @@ app.get("/monitor/:monitorId?", (req, res) => {
   const nonce = crypto.randomBytes(16).toString("base64")
   res.render("monitor", {
     nonce: nonce,
-    jsValues: {
+    useWebsockets: true,
+    jsInit: {
       monitorId: req.params.monitorId,
+      monitorMode: true,
     },
     scripts: ["play.js", "monitor.js"],
+  })
+})
+
+app.get("/remote/:remoteId?/:monitorId?", async (req, res) => {
+  const nonce = crypto.randomBytes(16).toString("base64")
+
+  res.render("remote", {
+    nonce: nonce,
+    useWebsockets: true,
+    jsInit: {
+      monitorId: req.params.monitorId,
+      remoteId: req.params.remoteId,
+    },
+    scripts: ["remote.js"],
   })
 })
 
@@ -127,6 +168,16 @@ const walk = async (moviesDir, curPath, results={ movies: [], dirs: [] }) => {
   return results
 }
 
+/*
+ * eg http -b :3001/api/movies/sacha
+ */
+app.get([ "/api/movies/:path(*)", "/api/movies" ], async (req, res) => {
+  const curPath = req.params.path || ""
+  const moviesDir = path.join(config.moviesBasePath, curPath)
+  const dirData = await walk(moviesDir, curPath)
+  return res.status(200).send({ moviesDir: moviesDir, data: dirData })
+})
+
 app.get("*", async (req, res) => {
   const curPath = req.url.replace(/^\//, "")
   const moviesDir = path.join(config.moviesBasePath, curPath)
@@ -138,3 +189,4 @@ app.get("*", async (req, res) => {
     scripts: ["home.js"]
   })
 })
+

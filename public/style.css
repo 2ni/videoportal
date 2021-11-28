@@ -76,6 +76,7 @@ a:hover {
   border: 1px solid;
   width: 200px;
   height: 125px;
+  position: relative;
 }
 
 #movies-list ul.movies li a {
@@ -175,4 +176,17 @@ a:hover {
 
 #overlay button:hover {
   cursor: pointer;
+}
+
+#remoteControl {
+  /*
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 0, 0, .5);
+  text-align: center;
+  z-index: 2;
+  */
 }

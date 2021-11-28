@@ -15,17 +15,19 @@
       <li><a href="{{this.url}}">{{this.name}}</a></li>
       {{/each}}
     </ul>
-    <div class="client-control">
-      <div id="client-id"><input type="text"></input></div>
-      <div id="clients-list"><select name="clients"><option name="">---</option></select></div>
-    </div>
+    {{#if useWebsockets}}
+      <div class="client-control">
+        <div id="client-id"><input type="text"></input></div>
+        <div id="clients-list"><select name="clients"><option value="---">---</option></select></div>
+      </div>
+    {{/if}}
   </div>
   {{{body}}}
   <div id="overlay"><button></button></div>
   <div id="dbg"></div>
   {{#if nonce}}
     <script nonce="{{nonce}}">
-      {{#each jsValues}}
+      {{#each jsInit}}
         let {{@key}}="{{this}}";
       {{/each}}
     </script>

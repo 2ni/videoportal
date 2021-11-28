@@ -4,9 +4,19 @@ import url from "url"
 
 import { timestamp } from "./helpers/utils.js"
 
-const wss = new WebSocketServer({ noServer: true })
+// we track clients on our own list
+// maxPayload in bytes
+const wss = new WebSocketServer({ noServer: true, clientTracking: false, maxPayload: 500 })
 
 const clientsTable = new Map()
+
+wss.on("exit", () => {
+  console.log(timestamp(), "remove all clients")
+  clientsTable.forEach(client => {
+    client.send(JSON.stringify({ clients: { removeall: 1 }}))
+    console.log(client.id)
+  })
+})
 
 wss.on("connection", (ws, req) => {
   // if (!isValidToken(token)) return req.reject() or req.accept()
@@ -23,10 +33,13 @@ wss.on("connection", (ws, req) => {
   clientsTable.set(ws.id, ws)
   console.log(timestamp(), "client connected " + ws.id + " (" + clientsTable.size + ")")
 
-  const broadcast = (data) => {
+  // TODO https://github.com/websockets/ws/issues/617
+  const broadcast = (data, skipSource = true) => {
     data = typeof(data) !== "string" ? JSON.stringify(data) : data
-    wss.clients.forEach(client => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
+    console.log(timestamp(), "broadcasting from " + ws.id + ":  " + data)
+    clientsTable.forEach(client => {
+      if (skipSource && client !== ws && client.readyState === WebSocket.OPEN) {
+        console.log(timestamp(), "  > " + client.id)
         client.send(data)
       }
     })
@@ -35,24 +48,22 @@ wss.on("connection", (ws, req) => {
   if (ws.webclient) {
     // send new client to all existing clients
     const clients = []
-    wss.clients.forEach(client => {
-      if (client !== ws) {
-        clients.push(client.id)
-        client.send(JSON.stringify({ clients: {"list": [ ws.id ] } }))
-      }
-    })
+    clientsTable.forEach(client => { clients.push(client.id) })
+
+    broadcast({ clients: { add: [ ws.id ], list: clients } })
 
     // send all available clients to the new client
-    if (clients.length) {
-      console.log(timestamp(), "sending initial client list to " + ws.id, clients)
-      ws.send(JSON.stringify({ clients: { "list": clients } }))
+    if (clients.length > 1) {
+      console.log(timestamp(), "initial clientList to " + ws.id, clients)
+      ws.send(JSON.stringify({ clients: { list: clients } }))
     }
   }
 
+  // TODO only accept specific messages
   ws.on("message", (data, isBinary) => {
     try {
       data = JSON.parse(data)
-      console.log(timestamp(), "got data from a client", data)
+      console.log(timestamp(), "got data from " + ws.id + ": " + JSON.stringify(data))
       if (data.targetIds) {
         for (const targetId of data.targetIds) {
           const dest = clientsTable.get(targetId)
@@ -64,7 +75,6 @@ wss.on("connection", (ws, req) => {
           }
         }
       } else {
-        console.log(timestamp(), "broadcast data from " + ws.id)
         broadcast(data)
       }
     } catch (e) {
@@ -74,9 +84,12 @@ wss.on("connection", (ws, req) => {
 
   ws.on("close", event => {
     clientsTable.delete(ws.id)
+    const clients = []
+    clientsTable.forEach(client => { clients.push(client.id) })
+
     console.log(timestamp(), "client disconnected " + ws.id + " (" + clientsTable.size + ")")
     if (ws.webclient) {
-      broadcast(JSON.stringify({ clients: {"remove": [ ws.id ] } }))
+      broadcast(JSON.stringify({ clients: { remove: [ ws.id ], list: clients } }))
     }
   })
 })
