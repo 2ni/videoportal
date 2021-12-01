@@ -1,9 +1,13 @@
 let ws = null
 let trial = 0
 
-const _startWebsocket = (id) => {
+const _startWebsocket = (id, monitorId, clientType) => {
   if (id) {
-    ws = new WebSocket("ws://" + window.location.hostname + ":" + window.location.port + "?id=" + id)
+    ws = new WebSocket("ws"
+      + (window.location.protocol === "https" ? "s" : "")
+      + "://" + window.location.hostname + ":" + window.location.port
+      + "?id=" + id + "&clientType=" + clientType + "&roomId=" + monitorId
+    )
     ws.onopen = () => {
       console.log("connection opened", id)
       trial = 0
@@ -15,16 +19,23 @@ const _startWebsocket = (id) => {
       } catch (e) {
         data = {}
       }
-      console.log("data from server", data)
+      // console.log("data from server", data)
+      const { reason, ...dataEvt } = data
+      const eventsAllowed = [ "monitorlist", "participantlist", "connected", "disconnected", "joined", "left", "changedclientid", "loadmovie", "movieloaded", "playstop", "movieplaying", "moviestopped", "movieplayingerror" ]
+      if (eventsAllowed.includes(data.reason)) {
+        console.log("evt-" + data.reason, dataEvt)
+        document.dispatchEvent(new CustomEvent("evt-" + data.reason, { "detail": dataEvt }))
+      } else {
+        console.log("event not allowed", data.reason, dataEvt)
+      }
+
+
+
+
       // received command from remote control, eg start, stop, load movie
       if (data.remoteControl) {
         const custEvt = new CustomEvent("remoteControl", { "detail": { ...{ "sourceId": data.sourceId}, ...data.remoteControl }})
         document.querySelector("#video-holder video").dispatchEvent(custEvt)
-      }
-      // push custom event "clients" as visible clients changed
-      if (data.clients) {
-        const custEvt = new CustomEvent("clients", { "detail": { "clients": data.clients }})
-        document.dispatchEvent(custEvt)
       }
     }
 
@@ -32,7 +43,7 @@ const _startWebsocket = (id) => {
       console.log("connection closed", trial)
       trial++
       ws = null
-      setTimeout(_startWebsocket.bind(null, id), trial < 3 ? 300 : 5000)
+      setTimeout(_startWebsocket.bind(null, id, monitorId, clientType), trial < 3 ? 300 : 5000)
     }
   }
 }
@@ -56,11 +67,9 @@ const generateBime = ({ length } = { length: 5 }) => {
 const handleWebsocket = (clientControlElm) => {
   if (!clientControlElm) return
 
-  console.log("websockets activated")
-
   const clientIdElm = clientControlElm.querySelector("#client-id input")
-  const clientListElm = clientControlElm.querySelector("#clients-list select")
-  const clientId = (typeof remoteId !== "undefined" && remoteId)
+  const isRemoteControl = typeof remoteId !== "undefined"
+  let clientId = (isRemoteControl && remoteId)
     || (typeof monitorId !== "undefined" && monitorId)
     || window.localStorage.getItem("client-id")
     || generateBime({ length: 7 })
@@ -70,68 +79,26 @@ const handleWebsocket = (clientControlElm) => {
     window.localStorage.setItem("client-id", clientId)
   }
 
-  _startWebsocket(clientId)
+  _startWebsocket(clientId, monitorId, isRemoteControl ? "remotecontrol" : "monitor")
   clientIdElm.setAttribute("value", clientId)
 
-  // listen for new clients
-  document.addEventListener("clients", event => {
-    updateClientList(event, clientListElm, clientId)
-    if (event.detail.clients.list && event.detail.clients.list.includes(monitorId)) {
-      clientListElm.value = monitorId
-    }
-  })
-
   clientIdElm.addEventListener("keydown", event => {
+    // id switched
     if (event.code === "Enter" || event.key === "Enter") {
       event.target.blur()
       const id = event.target.value
-      window.localStorage.setItem("client-id", id)
+      if (id !== clientId) {
+        window.localStorage.setItem("client-id", id)
+        ws.send(JSON.stringify({ reason: "changedclientid", id: id, roomId: monitorId }))
+        clientId = id
+      }
+      /*
       ws.onclose = () => {}
       ws.close()
-      _startWebsocket(id)
+      _startWebsocket(id, monitorId, isMonitor ? "monitor" : "remote")
+      */
     }
   })
-}
-
-/*
- * update list of available clients
- */
-const updateClientList = (event, selectObj, clientId) => {
-  // add one client
-  if (event.detail.clients.add) {
-    console.log("clients add", event.detail.clients.add)
-    selectObj.options.add(new Option(event.detail.clients.add))
-  }
-  // remove one client
-  else if (event.detail.clients.remove) {
-    // 1st option is "----"
-    for (let i=1; i<selectObj.length; i++) {
-      if (selectObj.options[i].value === event.detail.clients.remove[0]) {
-        console.log("clients: remove", selectObj.options[i].value)
-        selectObj.remove(i)
-        break;
-      }
-    }
-  }
-  // remove all clients, ie when reloading server
-  else if (event.detail.clients.removeall) {
-    // 1st option is "----"
-    for (let i=1; i<selectObj.length; i++) {
-      selectObj.remove(i)
-    }
-  }
-  // add whole client list
-  else if (event.detail.clients.list) {
-    console.log("clients: list", event.detail.clients.list)
-    for (let i=1; i<selectObj.length; i++) { // never remove 1st item, as its ---
-      selectObj.remove(i)
-    }
-    event.detail.clients.list.forEach(id => {
-      if (id !== clientId) {
-        selectObj.options.add(new Option(id, id))
-      }
-    })
-  }
 }
 
 handleWebsocket(document.querySelector(".client-control"))

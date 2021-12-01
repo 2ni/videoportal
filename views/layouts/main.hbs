@@ -18,7 +18,9 @@
     {{#if useWebsockets}}
       <div class="client-control">
         <div id="client-id"><input type="text"></input></div>
-        <div id="clients-list"><select name="clients"><option value="---">---</option></select></div>
+        {{#if isRemote}}
+        <div id="monitor-list"><select name="monitors"><option value="---">---</option></select></div>
+        {{/if}}
       </div>
     {{/if}}
   </div>

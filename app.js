@@ -125,7 +125,6 @@ app.get("/monitor/:monitorId?", (req, res) => {
     useWebsockets: true,
     jsInit: {
       monitorId: req.params.monitorId,
-      monitorMode: true,
     },
     scripts: ["play.js", "monitor.js"],
   })
@@ -137,6 +136,7 @@ app.get("/remote/:remoteId?/:monitorId?", async (req, res) => {
   res.render("remote", {
     nonce: nonce,
     useWebsockets: true,
+    isRemote: true,
     jsInit: {
       monitorId: req.params.monitorId,
       remoteId: req.params.remoteId,
