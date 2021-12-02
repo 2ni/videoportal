@@ -1,10 +1,9 @@
 const videoSource = videoObject.querySelector("source")
-const remoteControlsElm = document.querySelector(".remotecontrols")
+const remoteControlsElm = document.querySelector("#remoteControls")
 const remoteControls = new Map()
 const templateRemoteControlbox = document.getElementById("templateRemoteControlBox").innerHTML
 
 const showErrorOverlay = (error) => {
-  console.log("failed because the user didn't interact with the document first")
   const overlay = document.getElementById("overlay")
   const overlayButton = overlay.querySelector("button")
   overlayButton.innerHTML = "Click here to activate remote control"
@@ -14,6 +13,7 @@ const showErrorOverlay = (error) => {
 
 const activateRemote = event => {
   overlay.style.display = "none"
+  ws.send(JSON.stringify({ reason: "remoteactivated", roomId: monitorId }))
   overlayButton.removeEventListener("click", activateRemote)
 }
 
@@ -69,6 +69,14 @@ document.addEventListener("evt-playstop", event => {
     ws.send(JSON.stringify({ reason: "moviestopped", movie: movieUrl, roomId: monitorId }))
     updateRemoteControlActivity(event.detail.source, "Stopped movie")
   }
+})
+
+document.addEventListener("evt-rewind", event => {
+  videoObject.currentTime -= 5
+})
+
+document.addEventListener("evt-forward", event => {
+  videoObject.currentTime += 5
 })
 
 document.addEventListener("evt-joined", event => {

@@ -8,9 +8,10 @@ import { timestamp } from "./helpers/utils.js"
 // maxPayload in bytes
 const wss = new WebSocketServer({ noServer: true, clientTracking: false, maxPayload: 500 })
 
-const monitorsTable = new Map() // id: wss
+const monitorsTable = new Map()       // id: wss
 const remoteControlsTable = new Map() // id: wss
-const roomsTable = new Map() // id(monitorId) =>  id:{id, type, movie, status(play,stop)}
+const roomsTable = new Map()          // id(monitorId) => id:{id, type, movie, status(play,stop)}
+const roomsMeta = new Map()           // id(monitorId) => {movie:"", status:""}
 
 const debugTables = () => {
   console.log("")
@@ -25,6 +26,11 @@ const debugTables = () => {
       participants.push(k + "(" + p.type + ")")
     })
     console.log(participants)
+  })
+  console.log(timestamp(), "roomsmeta")
+  roomsMeta.forEach((meta,key) => {
+    process.stdout.write(timestamp() + "  " + key + ": ")
+    console.log(meta)
   })
   console.log(timestamp(), "******************************")
 }
@@ -87,7 +93,8 @@ wss.on("connection", (ws, req) => {
         participants.push({ id: participant.id, type: participant.type })
       })
       if (participants.length) {
-        ws.send(JSON.stringify({ reason: "participantlist", participants: participants }))
+        const meta = roomsMeta.get(roomId) || {}
+        ws.send(JSON.stringify({ reason: "participantlist", ...{ participants: participants }, ...{ meta: meta } }))
       }
     }
   }
@@ -107,6 +114,17 @@ wss.on("connection", (ws, req) => {
   if (clientType === "remotecontrol" && !clientId) {
     console.log(timestamp(), "invalid remotecontrol")
     return ws.close(4001, "invalid remotecontrol")
+  }
+
+  if ((clientType === "remotecontrol" && remoteControlsTable.get(clientId))
+    || (clientType === "monitor" && monitorsTable.get(clientId))) {
+      console.log(timestamp(), "clientid taken")
+      return ws.close(4001, "clientid taken")
+  }
+
+  if (!["remotecontrol", "monitor"].includes(clientType)) {
+    console.log(timestamp(), "invalid client type")
+    return ws.close(4001, "invalid client type")
   }
 
   console.log(timestamp(), clientType + " \"" + clientId + "\" connected ")
@@ -134,7 +152,13 @@ wss.on("connection", (ws, req) => {
       // broadcast to all remotecontrols about new monitor
       broadcast("remotecontrol", null, { reason: "connected", id: clientId, type: clientType })
 
+      // unset meta if monitor joins
+      if (roomsMeta.get(clientId)) {
+        roomsMeta.set(clientId, { status: "moviestopped", movie: "" })
+      }
+
       // send all remotecontrols listening to new monitor
+      // TODO needed, nothing is done with it
       if (roomsTable.get(roomId)) {
         const remotecontrols = []
         roomsTable.get(roomId).forEach(participant => {
@@ -153,6 +177,7 @@ wss.on("connection", (ws, req) => {
     if (!room) {
       console.log(timestamp(), "create room \"" + roomId + "\"")
       roomsTable.set(roomId, new Map())
+      roomsMeta.set(roomId, { status: "moviestopped", movie: "" })
     }
     room = roomsTable.get(roomId)
     // add client to room
@@ -162,7 +187,7 @@ wss.on("connection", (ws, req) => {
     // broadcast all room clients about new client
     broadcast("room", roomId, { reason: "joined", id: clientId, type: clientType })
 
-    // send all room members to new client
+    // send status & all room members to new client
     sendRoomList(roomId)
   }
 
@@ -194,11 +219,22 @@ wss.on("connection", (ws, req) => {
         case "loadmovie":
         case "movieloaded":
         case "playstop":
-        case "stop":
+        case "forward":
+        case "rewind":
         case "movieplaying":
         case "moviestopped":
         case "movieplayingerror":
+        case "remoteactivated":
           ({ roomId, ...dataToSend } = data)
+
+          let meta = roomsMeta.get(roomId)
+          if (["movieplaying", "moviestopped"].includes(data.reaon)) {
+            meta.status = data.reason
+            roomsMeta.set(roomId, meta)
+          } else if (data.reason === "movieloaded") {
+            meta.movie = data.movie
+            roomsMeta.set(roomId, meta)
+          }
           broadcast("room", roomId, { ...{ "source": { id: ws.id, type: ws.type} }, ...dataToSend })
           break
       }
@@ -214,6 +250,7 @@ wss.on("connection", (ws, req) => {
       if (!room.size) {
         console.log(timestamp(), "remove room \"" + roomId + "\"")
         roomsTable.delete(roomId)
+        roomsMeta.delete(roomId)
       } else {
         // broadcast to all members of chat about leaving client
         broadcast("room", roomId, { reason: "left", id: clientId, type: clientType })

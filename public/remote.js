@@ -1,6 +1,8 @@
 const monitorList = document.querySelector("#monitor-list select")
 const remote = document.getElementById("remoteControl")
 const remotePlayStop = remote.querySelector(".play-stop")
+const remoteRewind = remote.querySelector(".rewind")
+const remoteForward = remote.querySelector(".forward")
 const remoteMovie = remote.querySelector(".movie")
 const moviesUl = document.querySelector("#movies-list .movies")
 let selectedMovie = null
@@ -23,11 +25,18 @@ const mainRemote = () => {
 
   // participant list
   document.addEventListener("evt-participantlist", event => {
+    /*
     event.detail.participants.forEach(participant => {
-      if (participant.type === "monitor" && participant.id == monitorId) {
-        remotePlayStop.disabled = false
-      }
+      if (participant.type === "monitor" && participant.id == monitorId) remotePlayStop.disabled = false
     })
+    */
+    const meta = event.detail.meta
+    if (meta.movie) {
+      remotePlayStop.disabled = false
+      remoteRewind.disabled = false
+      remoteForward.disabled = false
+      remoteMovie.innerHTML = meta.movie
+    }
   })
 
   // monitor connected
@@ -55,20 +64,41 @@ const mainRemote = () => {
   document.addEventListener("evt-joined", event => {
     if (event.detail.type === "monitor") {
       const monitor = event.detail.id
-      remotePlayStop.disabled = monitorId !== monitor
+      // remotePlayStop.disabled = monitorId !== monitor
     }
   })
 
   // monitor loaded movie
   document.addEventListener("evt-movieloaded", event => {
     remotePlayStop.disabled = false
+    remoteRewind.disabled = false
+    remoteForward.disabled = false
+  })
+
+  // monitor can not  be controlled
+  document.addEventListener("evt-movieplayingerror", event => {
+    remotePlayStop.disabled = true
+    remoteRewind.disabled = true
+    remoteForward.disabled = true
+    remote.querySelector(".status").innerText = event.detail.msg
+  })
+
+  document.addEventListener("evt-remoteactivated", event => {
+    remotePlayStop.disabled = false
+    remoteRewind.disabled = false
+    remoteForward.disabled = false
+    remote.querySelector(".status").innerText = ""
   })
 
   // participant left
   document.addEventListener("evt-left", event => {
     if (event.detail.type === "monitor") {
       const monitor = event.detail.id
-      remotePlayStop.disabled = monitorId === monitor
+      remoteMovie.innerText = ""
+      remotePlayStop.innerText = "Play"
+      remotePlayStop.disabled = true
+      remoteRewind.disabled = true
+      remoteForward.disabled = true
     }
   })
 
@@ -114,7 +144,7 @@ const mainRemote = () => {
 
   // send "play/stop movie" command
   remote.addEventListener("click", event => {
-    ws.send(JSON.stringify({ reason: "playstop", roomId: monitorId }))
+    ws.send(JSON.stringify({ reason: event.target.classList[0].replace("-", ""), roomId: monitorId }))
   })
 
   // send "load movie" command

@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "dev": "nodemon -e js,hbs -r dotenv/config app.js"
+    "dev": "nodemon -e js,hbs,css -r dotenv/config app.js"
   },
   "author": "",
   "license": "ISC",

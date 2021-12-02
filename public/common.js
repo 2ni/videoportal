@@ -21,7 +21,7 @@ const _startWebsocket = (id, monitorId, clientType) => {
       }
       // console.log("data from server", data)
       const { reason, ...dataEvt } = data
-      const eventsAllowed = [ "monitorlist", "participantlist", "connected", "disconnected", "joined", "left", "changedclientid", "loadmovie", "movieloaded", "playstop", "movieplaying", "moviestopped", "movieplayingerror" ]
+      const eventsAllowed = [ "monitorlist", "participantlist", "connected", "disconnected", "joined", "left", "changedclientid", "loadmovie", "movieloaded", "playstop", "forward", "rewind", "movieplaying", "moviestopped", "movieplayingerror", "remoteactivated" ]
       if (eventsAllowed.includes(data.reason)) {
         console.log("evt-" + data.reason, dataEvt)
         document.dispatchEvent(new CustomEvent("evt-" + data.reason, { "detail": dataEvt }))
