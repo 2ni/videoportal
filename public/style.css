@@ -243,3 +243,17 @@ a:hover {
 #remoteControls li .activity {
   font-size: .5rem;
 }
+
+.flash {
+  border-radius: 3px;
+  animation: highlight 500ms ease-out;
+}
+
+@keyframes highlight {
+  0% {
+    background-color: #0275d8;
+  }
+  100% {
+    background-color: white;
+  }
+}

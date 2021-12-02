@@ -28,6 +28,10 @@ const updateRemoteControlActivity = (source, activity) => {
   if (activityElm) {
     activityElm.querySelector(".activity").innerText = activity
     activityElm.classList.add("current")
+    activityElm.classList.add("flash")
+    setTimeout(() => {
+      activityElm.classList.remove("flash")
+    }, 500)
   }
 }
 
@@ -73,10 +77,12 @@ document.addEventListener("evt-playstop", event => {
 
 document.addEventListener("evt-rewind", event => {
   videoObject.currentTime -= 5
+  updateRemoteControlActivity(event.detail.source, "Rewind")
 })
 
 document.addEventListener("evt-forward", event => {
   videoObject.currentTime += 5
+  updateRemoteControlActivity(event.detail.source, "Forward")
 })
 
 document.addEventListener("evt-joined", event => {
