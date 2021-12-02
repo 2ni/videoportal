@@ -206,6 +206,16 @@ wss.on("connection", (ws, req) => {
           broadcast("room", data.roomIdLeft, { reason: "left", id: ws.id, type: ws.type })
           broadcast("room", data.roomIdJoined, { reason: "joined", id: ws.id, type: ws.type })
           sendRoomList(data.roomIdJoined)
+          let rt = null
+          if (data.roomIdLeft) {
+            rt = roomsTable.get(data.roomIdLeft)
+            rt.delete(ws.id)
+          }
+
+          if (data.roomIdJoined) {
+            rt = roomsTable.get(data.roomIdJoined)
+            rt.set(ws.id, { id: ws.id, type: ws.type })
+          }
           break
         case "changedclientid":
           if (data.roomId) {

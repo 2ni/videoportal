@@ -137,8 +137,17 @@ document.addEventListener("evt-moviestopped", event => {
 monitorList.addEventListener("change", event => {
   monitor = event.target.value
   console.log("remote changed", monitor)
-  ws.send(JSON.stringify({ reason: "changedroom", roomIdLeft: monitorId, roomIdJoined: monitor }))
+  ws.send(JSON.stringify({
+    reason: "changedroom",
+    roomIdLeft: (monitorId === "---" ? "" : monitorId),
+    roomIdJoined: (monitor === "---" ? "" : monitor)
+  }))
   monitorId = monitor
+
+  if (monitor === "---") {
+    remoteEnabled(false)
+    remoteMovie.innerText = ""
+  }
 })
 
 // send "play/stop movie" command
