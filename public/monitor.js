@@ -18,19 +18,28 @@ const activateRemote = event => {
 }
 
 const updateRemoteControlActivity = (source, activity) => {
-  // clear all activities
+  let activityElm = null
+  // clear last active mark
   remoteControlsElm.querySelectorAll("li").forEach(li => {
-    li.classList.remove("current")
+    li.classList.remove("lastactive")
+    activityElm = li.querySelector(".activity")
+    const opacity = activityElm.style.opacity
+    if (activityElm.innerText && (opacity === "" || opacity >= 0)) {
+      activityElm.style.opacity = (opacity || 1) - .2
+    }
   })
 
   // add + highlight last activity
-  const activityElm = remoteControlsElm.querySelector("." + source.type + "-" + source.id)
-  if (activityElm) {
-    activityElm.querySelector(".activity").innerText = activity
-    activityElm.classList.add("current")
-    activityElm.classList.add("flash")
+  const activeLiElm = remoteControlsElm.querySelector("." + source.type + "-" + source.id)
+  if (activeLiElm) {
+    activityElm = activeLiElm.querySelector(".activity")
+    activityElm.innerText = activity
+    activityElm.style.opacity = ""
+
+    activeLiElm.classList.add("lastactive")
+    activeLiElm.classList.add("flash")
     setTimeout(() => {
-      activityElm.classList.remove("flash")
+      activeLiElm.classList.remove("flash")
     }, 500)
   }
 }

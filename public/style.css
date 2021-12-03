@@ -252,6 +252,10 @@ a:hover {
   font-size: .5rem;
 }
 
+#remoteControls  li.lastactive .name::before {
+  content: "\2605";
+}
+
 .flash {
   border-radius: 3px;
   animation: highlight 500ms ease-out;
