@@ -5,7 +5,7 @@ const _startWebsocket = (id, monitorId, clientType) => {
   if (id) {
     wscmd = "ws"
       + (window.location.protocol === "https" ? "s" : "")
-      + "://" + window.location.hostname + ":" + window.location.port
+      + "://" + window.location.hostname + (window.location.port ? ":" : "") + window.location.port
       + "?id=" + id + "&clientType=" + clientType + "&roomId=" + monitorId
     console.log("opening websocket", wscmd)
 
