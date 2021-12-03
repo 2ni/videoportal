@@ -220,6 +220,14 @@ a:hover {
   color: #D86502;
 }
 
+#remoteControl .movie .currenttime {
+  font-size: .5rem;
+}
+
+#remoteControl .movie .currenttime::before {
+  content: " ";
+}
+
 #remoteControls {
   list-style: none;
   display: flex;

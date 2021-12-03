@@ -18,6 +18,13 @@ const remoteEnabled = (status) => {
   remoteForward.disabled = status ? false : true
 }
 
+const timestamp2human = (timestamp) => {
+  let duration = new Date(1000*timestamp).toISOString().substr(11, 8).replace(/00:/g, "")
+  const num = (duration.match(/:/g) || []).length
+  duration += num == 2 ? "hours" : (num == 1 ? "min": "sec")
+  return duration
+}
+
 const getMovies = (dir = "") => {
   fetch("/api/movies/" + dir, { method: "GET", headers: {} }).then(r => {
     return r.json()
@@ -31,10 +38,7 @@ const getMovies = (dir = "") => {
       // show duration of video
       const mov = moviesUl.querySelector("li:last-child video")
       const loadDuration = (event) => {
-        let duration = new Date(1000*event.target.duration).toISOString().substr(11, 8).replace(/00:/g, "")
-        const num = (duration.match(/:/g) || []).length
-        duration += num == 2 ? "hours" : (num == 1 ? "min": "sec")
-        event.target.parentElement.querySelector(".duration").textContent = duration
+        event.target.parentElement.querySelector(".duration").textContent = timestamp2human(event.target.duration)
 
         mov.removeEventListener("loadedmetadata", loadDuration)
       }
@@ -68,7 +72,7 @@ document.addEventListener("evt-participantlist", event => {
   })
   */
   const meta = event.detail.meta
-  remoteMovie.innerHTML = meta.movie
+  remoteMovie.innerText = meta.movie
   if (meta.status === "moviestopped") {
     remotePlayStop.innerText = "Play"
   }
@@ -110,6 +114,7 @@ document.addEventListener("evt-joined", event => {
 // monitor loaded movie
 document.addEventListener("evt-movieloaded", event => {
   remoteEnabled(true)
+  remoteMovie.innerHTML = event.detail.movie + "<span class=\"currenttime\">" + timestamp2human(event.detail.currenttime) + "</span>"
 })
 
 // monitor can not  be controlled
@@ -148,20 +153,13 @@ document.addEventListener("evt-changedclientid", event => {
   }
 })
 
-// monitor loaded  movie
-document.addEventListener("evt-movieloaded", event => {
-  remoteMovie.innerHTML = event.detail.movie
-})
-
 // monitor is playing movie
 document.addEventListener("evt-movieplaying", event => {
-  remoteMovie.innerText = event.detail.movie
   remotePlayStop.innerText = "Stop"
 })
 
 // monitor has stopped movie
 document.addEventListener("evt-moviestopped", event => {
-  remoteMovie.innerText = event.detail.movie
   remotePlayStop.innerText = "Play"
 })
 

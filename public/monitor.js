@@ -50,7 +50,7 @@ document.addEventListener("evt-loadmovie", event => {
     videoObject.currentTime = window.localStorage.getItem(event.detail.movie)
   }
   // inform room
-  ws.send(JSON.stringify({ reason: "movieloaded", movie: event.detail.movie, roomId: monitorId }))
+  ws.send(JSON.stringify({ reason: "movieloaded", movie: event.detail.movie, roomId: monitorId, currenttime: videoObject.currentTime }))
 
   // show activity
   updateRemoteControlActivity(event.detail.source, "Loaded movie")
@@ -124,4 +124,14 @@ document.addEventListener("evt-participantlist", event => {
       )
     }
   })
+
+  // send movie if loaded (eg happens if wss restarts
+  if (videoSource.getAttribute("src")) {
+    ws.send(JSON.stringify({
+      reason: "movieloaded",
+      movie: videoSource.getAttribute("src").replace(/^\/movies\//, ""),
+      roomId: monitorId,
+      currenttime: videoObject.currentTime
+    }))
+  }
 })
