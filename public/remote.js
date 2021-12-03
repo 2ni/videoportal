@@ -5,6 +5,7 @@ const remoteRewind = remote.querySelector(".rewind")
 const remoteForward = remote.querySelector(".forward")
 const remoteMovie = remote.querySelector(".movie")
 const moviesUl = document.querySelector("#movies-list .movies")
+const dirsUl = document.querySelector("#movies-list .dirs")
 let selectedMovie = null
 const monitors = new Map()
 
@@ -15,6 +16,37 @@ const remoteEnabled = (status) => {
   remotePlayStop.disabled = status ? false : true
   remoteRewind.disabled = status ? false : true
   remoteForward.disabled = status ? false : true
+}
+
+const getMovies = (dir = "") => {
+  fetch("/api/movies/" + dir, { method: "GET", headers: {} }).then(r => {
+    return r.json()
+  }).then(response => {
+    moviesUl.innerHTML = ""
+    response.data.movies.forEach(movie => {
+      moviesUl.insertAdjacentHTML("beforeend", templateVideoBox
+        .replace(/{{name}}/g, movie.name.replace(/\..*$/, ""))
+        .replace(/{{url}}/g, movie.url))
+
+      // show duration of video
+      const mov = moviesUl.querySelector("li:last-child video")
+      const loadDuration = (event) => {
+        let duration = new Date(1000*event.target.duration).toISOString().substr(11, 8).replace(/00:/g, "")
+        const num = (duration.match(/:/g) || []).length
+        duration += num == 2 ? "hours" : (num == 1 ? "min": "sec")
+        event.target.parentElement.querySelector(".duration").textContent = duration
+
+        mov.removeEventListener("loadedmetadata", loadDuration)
+      }
+      mov.addEventListener("loadedmetadata", loadDuration)
+    })
+
+    // dirs
+    dirsUl.innerHTML = ""
+    response.data.dirs.forEach(dir => {
+      dirsUl.insertAdjacentHTML("beforeend", templateUrlBox.replace(/{{name}}/g, dir.name).replace(/{{url}}/g, dir.url))
+    })
+  })
 }
 
 // monitor list
@@ -174,30 +206,17 @@ moviesUl.addEventListener("click", event => {
   event.preventDefault()
 })
 
+// load dir
+dirsUl.addEventListener("click", event => {
+  const elm = event.target
+  if (elm.tagName !== "A") return
 
-
-fetch("/api/movies", { method: "GET", headers: {} }).then(r => {
-  return r.json()
-}).then(response => {
-  const dirsUl = document.querySelector("#movies-list .dirs")
-  response.data.movies.forEach(movie => {
-    moviesUl.insertAdjacentHTML("beforeend", templateVideoBox
-      .replace(/{{name}}/g, movie.name.replace(/\..*$/, ""))
-      .replace(/{{url}}/g, movie.url))
-
-    // show duration of video
-    const mov = moviesUl.querySelector("li:last-child video")
-    const loadDuration = (event) => {
-      let duration = new Date(1000*event.target.duration).toISOString().substr(11, 8).replace(/00:/g, "")
-      const num = (duration.match(/:/g) || []).length
-      duration += num == 2 ? "hours" : (num == 1 ? "min": "sec")
-      event.target.parentElement.querySelector(".duration").textContent = duration
-
-      mov.removeEventListener("loadedmetadata", loadDuration)
-    }
-    mov.addEventListener("loadedmetadata", loadDuration)
-  })
-  response.data.dirs.forEach(dir => {
-    dirsUl.insertAdjacentHTML("beforeend", templateUrlBox.replace(/{{name}}/g, dir.name).replace(/{{url}}/g, dir.url))
-  })
+  window.location.hash = "#" + elm.getAttribute("href")
+  event.preventDefault()
 })
+
+window.addEventListener("hashchange", event => {
+  getMovies(window.location.hash.replace(/#/, ""))
+})
+
+getMovies(window.location.hash.replace(/#/, ""))
