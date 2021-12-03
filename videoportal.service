@@ -1,15 +1,15 @@
 [Unit]
-Description=Videoplayer
+Description=Videoportal
 
 [Service]
-ExecStart=/home/pi/videoplayer/app.js
+ExecStart=/home/pi/videoportal/app.js
 Restart=always
 User=pi
 # Note Debian/Ubuntu uses 'nogroup', RHEL/Fedora uses 'nobody'
 Group=pi
 Environment=PATH=/usr/bin:/usr/local/bin
 Environment=ENV=production
-WorkingDirectory=/home/pi/videoplayer
+WorkingDirectory=/home/pi/videoportal
 
 [Install]
 WantedBy=multi-user.target

@@ -29,7 +29,8 @@ app.engine(".hbs", engine({ extname: ".hbs", helpers: handlebarsHelpers, partial
 app.set("view engine", ".hbs")
 app.set("views", "./views")
 // https://stackoverflow.com/questions/64534727/nodejs-err-ssl-protocol-error-in-http-server#answer-67580077
-app.use(helmet({ contentSecurityPolicy: env === "localhost" ? false : true }))
+// app.use(helmet({ contentSecurityPolicy: env === "localhost" ? false : true }))
+app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors({
   origin: [
     "http://localhost:3001",

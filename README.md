@@ -15,6 +15,37 @@ npm init
 npm install
 ```
 
+### Setup on production see [stackoverflow](https://stackoverflow.com/questions/4018154/how-do-i-run-a-node-js-app-as-a-background-service)
+```
+git clone...
+npm install
+sudo cp videoportal.service /etc/systemd/system/
+sudo systemctl [start|stop] videoportal
+sudo systemctl enable videoportal # to enable  on boot
+journalctl -u videoportal # for logging output
+```
+
+listen to http://<ip_of_your_rpi>:3002
+
+### Reverse proxy setup
+- set static route on your router http://videoportal pointing to your rpi ip
+- add the following to nginx:
+```
+  server {
+    listen 80;
+    server_name videoportal;
+
+    location / {
+      proxy_pass http://192.168.1.10:3002/;
+      proxy_redirect off;
+      proxy_set_header   X-Real-IP        $remote_addr;
+      proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+      proxy_set_header   Host             $host;
+    }
+  }
+```
+
+
 ### Run
 ```
 npm run dev
