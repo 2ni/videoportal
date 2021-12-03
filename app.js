@@ -158,7 +158,7 @@ const walk = async (moviesDir, curPath, results={ movies: [], dirs: [] }) => {
   for (const file of files) {
     const fullPath = path.join(moviesDir, file.name)
     const movieUrl = path.join(curPath, file.name)
-    const movieName = capitalize(movieUrl.split("/").at(-1))
+    const movieName = capitalize(movieUrl.split("/").slice(-1)[0])
     if (file.isFile()) {
       const f = await filetype.fromFile(fullPath)
       if (f &&  f.mime === "video/mp4") {
