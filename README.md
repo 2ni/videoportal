@@ -22,7 +22,7 @@ npm install
 sudo cp videoportal.service /etc/systemd/system/
 sudo systemctl [start|stop] videoportal
 sudo systemctl enable videoportal # to enable  on boot
-journalctl -u videoportal # for logging output
+journalctl -u videoportal -f # for logging output
 ```
 
 listen to http://<ip_of_your_rpi>:3002

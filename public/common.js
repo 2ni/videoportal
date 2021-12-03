@@ -3,11 +3,13 @@ let trial = 0
 
 const _startWebsocket = (id, monitorId, clientType) => {
   if (id) {
-    ws = new WebSocket("ws"
+    wscmd = "ws"
       + (window.location.protocol === "https" ? "s" : "")
       + "://" + window.location.hostname + ":" + window.location.port
       + "?id=" + id + "&clientType=" + clientType + "&roomId=" + monitorId
-    )
+    console.log("opening websocket", wscmd)
+
+    ws = new WebSocket(wscmd)
     ws.onopen = () => {
       console.log("connection opened", id)
       trial = 0
