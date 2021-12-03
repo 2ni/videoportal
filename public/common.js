@@ -3,7 +3,7 @@ let trial = 0
 
 const _startWebsocket = (id, monitorId, clientType) => {
   if (id) {
-    wscmd = "ws"
+    const wscmd = "ws"
       + (window.location.protocol === "https" ? "s" : "")
       + "://" + window.location.hostname + (window.location.port ? ":" : "") + window.location.port
       + "?id=" + id + "&clientType=" + clientType + "&roomId=" + monitorId

@@ -37,6 +37,9 @@ listen to http://<ip_of_your_rpi>:3002
 
     location / {
       proxy_pass http://192.168.1.10:3002/;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+      proxy_cache_bypass $http_upgrade;
       proxy_redirect off;
       proxy_set_header   X-Real-IP        $remote_addr;
       proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;

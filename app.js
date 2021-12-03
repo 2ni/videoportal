@@ -64,7 +64,7 @@ server.on("upgrade", async (request, socket, head) => {
   try {
     // args = await verifyClient()
   } catch (e) {
-    socket.destry()
+    socket.destroy()
   }
 
   wss.handleUpgrade(request, socket, head, (ws) => {
