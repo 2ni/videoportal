@@ -1,0 +1,15 @@
+[Unit]
+Description=Videoplayer
+
+[Service]
+ExecStart=/home/pi/videoplayer/app.js
+Restart=always
+User=pi
+# Note Debian/Ubuntu uses 'nogroup', RHEL/Fedora uses 'nobody'
+Group=pi
+Environment=PATH=/usr/bin:/usr/local/bin
+Environment=ENV=production
+WorkingDirectory=/home/pi/videoplayer
+
+[Install]
+WantedBy=multi-user.target
