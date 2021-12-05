@@ -102,6 +102,7 @@ document.addEventListener("evt-joined", event => {
       .replace(/{{name}}/g, id)
       .replace(/{{type}}/g, type)
     )
+    updateRemoteControlActivity(event.detail, "Joined")
   }
 })
 
@@ -142,5 +143,19 @@ document.addEventListener("evt-participantlist", event => {
       roomId: monitorId,
       currenttime: videoObject.currentTime
     }))
+  }
+})
+
+document.addEventListener("evt-changedclientid", event => {
+  if (event.detail.type === "remotecontrol") {
+    const li = remoteControlsElm.querySelector("li." + event.detail.type + "-" + event.detail.sourceid)
+    if (li) {
+      remoteControls.set(event.detail.id, 1)
+      remoteControls.delete(event.detail.sourceid)
+      li.querySelector(".name").innerText = event.detail.id
+      li.classList.remove(event.detail.type + "-" + event.detail.sourceid)
+      li.classList.add(event.detail.type + "-" + event.detail.id)
+      updateRemoteControlActivity(event.detail, "Changed name")
+    }
   }
 })

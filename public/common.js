@@ -23,7 +23,7 @@ const _startWebsocket = (id, monitorId, clientType) => {
       }
       // console.log("data from server", data)
       const { reason, ...dataEvt } = data
-      const eventsAllowed = [ "monitorlist", "participantlist", "connected", "disconnected", "joined", "left", "changedclientid", "loadmovie", "movieloaded", "playstop", "forward", "rewind", "movieplaying", "moviestopped", "movieplayingerror", "remoteactivated" ]
+      const eventsAllowed = [ "monitorlist", "participantlist", "connected", "disconnected", "joined", "left", "changedclientid", "loadmovie", "movieloaded", "playstop", "forward", "rewind", "movieplaying", "moviestopped", "movieplayingerror", "remoteactivated", "roomadded", "roomdeleted", "roomchanged", "roomlist" ]
       if (eventsAllowed.includes(data.reason)) {
         console.log("evt-" + data.reason, dataEvt)
         document.dispatchEvent(new CustomEvent("evt-" + data.reason, { "detail": dataEvt }))
@@ -45,7 +45,7 @@ const _startWebsocket = (id, monitorId, clientType) => {
       console.log("connection closed", trial)
       trial++
       ws = null
-      setTimeout(_startWebsocket.bind(null, id, monitorId, clientType), trial < 3 ? 300 : 5000)
+      // setTimeout(_startWebsocket.bind(null, id, monitorId, clientType), trial < 3 ? 300 : 5000)
     }
   }
 }
@@ -76,7 +76,10 @@ const handleWebsocket = (clientControlElm) => {
     || window.localStorage.getItem("client-id")
     || generateBime({ length: 7 })
 
-  console.log("clientId", clientId)
+  if (!isRemoteControl && !monitorId) {
+    monitorId = clientId
+  }
+
   if (!clientControlElm && !monitorId && window.localStorage.getItem("client-id") !== clientId) {
     window.localStorage.setItem("client-id", clientId)
   }
@@ -91,14 +94,10 @@ const handleWebsocket = (clientControlElm) => {
       const id = event.target.value
       if (id !== clientId) {
         window.localStorage.setItem("client-id", id)
-        ws.send(JSON.stringify({ reason: "changedclientid", id: id, roomId: monitorId }))
+        if (!isRemoteControl) monitorId = id
+        ws.send(JSON.stringify({ reason: "changedclientid", id: id, type: isRemoteControl ? "remotecontrol": "monitor", roomId: monitorId }))
         clientId = id
       }
-      /*
-      ws.onclose = () => {}
-      ws.close()
-      _startWebsocket(id, monitorId, isMonitor ? "monitor" : "remote")
-      */
     }
   })
 }

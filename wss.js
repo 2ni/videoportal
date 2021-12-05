@@ -10,8 +10,8 @@ const wss = new WebSocketServer({ noServer: true, clientTracking: false, maxPayl
 
 const monitorsTable = new Map()       // id: wss
 const remoteControlsTable = new Map() // id: wss
-const roomsTable = new Map()          // id(monitorId) => id:{id, type, movie, status(play,stop)}
-const roomsMeta = new Map()           // id(monitorId) => {movie:"", status:""}
+const roomsTable = new Map()          // id(monitorId) => id:{id, type}, id:{id, type}
+const roomsMeta = new Map()           // id(monitorId) => {movie:"", status:"", hasmonitor: false}
 
 const debugTables = () => {
   console.log("")
@@ -23,7 +23,7 @@ const debugTables = () => {
     process.stdout.write(timestamp() + "  " + key + ": ")
     const participants = []
     room.forEach((p, k) => {
-      participants.push(k + "(" + p.type + ")")
+      participants.push(k + "/" + p.type)
     })
     console.log(participants)
   })
@@ -66,7 +66,7 @@ wss.on("connection", (ws, req) => {
     }
     if (table) {
       data = typeof(data) !== "string" ? JSON.stringify(data) : data
-      console.log(timestamp(), "broadcast to \"" + whichType + "(" + (roomId ? roomId : "") + ")\" from " + ws.id + ":  " + data)
+      console.log(timestamp(), "broadcast to " + (roomId ? "" : "\"") + whichType + ( roomId ? " \"" + roomId : "") + "\" from " + ws.id + ":  " + data)
       table.forEach(t => {
         let to = t
         if (whichType === "room") {
@@ -85,7 +85,9 @@ wss.on("connection", (ws, req) => {
   }
 
   const sendRoomList = (roomId) => {
-    console.log(timestamp(), "send room list \"" + roomId + "\” to \"" + ws.id + "\"")
+    if (!roomId) return
+
+    console.log(timestamp(), "send room list \"" + roomId + "\" to \"" + ws.id + "\"")
     const participants = []
     const room = roomsTable.get(roomId)
     if (room) {
@@ -107,7 +109,7 @@ wss.on("connection", (ws, req) => {
   const clientId = parameters.query.id
 
   if (clientType === "monitor" && !roomId) {
-    console.log(timestamp(), "invalid monitor")
+    console.log(timestamp(), "invalid monitor, no roomId")
     return ws.close(4001, "invalid monitor")
   }
 
@@ -118,7 +120,7 @@ wss.on("connection", (ws, req) => {
 
   if ((clientType === "remotecontrol" && remoteControlsTable.get(clientId))
     || (clientType === "monitor" && monitorsTable.get(clientId))) {
-      console.log(timestamp(), "clientid taken")
+      console.log(timestamp(), "clientid taken: " + clientId + "/" + clientType)
       return ws.close(4001, "clientid taken")
   }
 
@@ -127,38 +129,36 @@ wss.on("connection", (ws, req) => {
     return ws.close(4001, "invalid client type")
   }
 
-  console.log(timestamp(), clientType + " \"" + clientId + "\" connected ")
   ws.id = clientId
   ws.type = clientType
+  console.log(timestamp(), ws.type + " \"" + ws.id + "\" connected ")
 
-  // add client to table
-  switch (clientType) {
+  // new client connected
+  switch (ws.type) {
     case "remotecontrol":
-      remoteControlsTable.set(clientId, ws)
+      remoteControlsTable.set(ws.id, ws)
       // broadcast to all monitors about new remoteControl
-      broadcast("monitor", null, { reason: "connected", id: clientId, type: clientType })
+      broadcast("monitor", null, { reason: "connected", id: ws.id, type: ws.type })
 
-      // send all monitors to new remoteControl
-      const monitors = []
-      monitorsTable.forEach(monitor =>  {
-        monitors.push(monitor.id)
+      // send all rooms to new remoteControl
+      const rooms = []
+      roomsTable.forEach((room, id) =>  {
+        rooms.push({ id: id, meta: roomsMeta.get(id) })
       })
-      if (monitors.length) {
-        ws.send(JSON.stringify({ reason: "monitorlist", monitors: monitors }))
+      if (rooms.length) {
+        ws.send(JSON.stringify({ reason: "roomlist", rooms: rooms }))
       }
       break
     case "monitor":
-      monitorsTable.set(clientId, ws)
-      // broadcast to all remotecontrols about new monitor
-      broadcast("remotecontrol", null, { reason: "connected", id: clientId, type: clientType })
+      monitorsTable.set(ws.id, ws)
 
       // unset meta if monitor joins
-      if (roomsMeta.get(clientId)) {
-        roomsMeta.set(clientId, { status: "moviestopped", movie: "" })
+      if (roomsMeta.get(ws.id)) {
+        roomsMeta.set(ws.id, { status: "moviestopped", movie: "", hasmonitor: true })
       }
 
-      // send all remotecontrols listening to new monitor
-      // TODO needed, nothing is done with it
+      // send all remotecontrols listening to new room
+      // TODO needed? nothing is done with it
       if (roomsTable.get(roomId)) {
         const remotecontrols = []
         roomsTable.get(roomId).forEach(participant => {
@@ -170,25 +170,40 @@ wss.on("connection", (ws, req) => {
       break
   }
 
-  // set up chat (monitor) room
+  // set up room
   let room = null
+  let reason = "roomchanged"
   if (roomId) {
     room = roomsTable.get(roomId)
     if (!room) {
+      reason = "roomadded"
       console.log(timestamp(), "create room \"" + roomId + "\"")
       roomsTable.set(roomId, new Map())
-      roomsMeta.set(roomId, { status: "moviestopped", movie: "" })
+      const meta = { status: "moviestopped", movie: "", hasmonitor: ws.type === "monitor" }
+      roomsMeta.set(roomId, meta)
+      ws.send(JSON.stringify({ reason: "roomadded", id: roomId, meta: meta }))
     }
     room = roomsTable.get(roomId)
     // add client to room
-    room.set(clientId, { id: clientId, type: clientType })
-    console.log(timestamp(), "add \"" + clientId + "\" to room \"" + roomId + "(" + room.size + ")\"")
+    room.set(ws.id, { id: ws.id, type: ws.type })
+    console.log(timestamp(), "add \"" + ws.id + "\" to room \"" + roomId + "(" + room.size + ")\"")
 
     // broadcast all room clients about new client
-    broadcast("room", roomId, { reason: "joined", id: clientId, type: clientType })
+    broadcast("room", roomId, { reason: "joined", id: ws.id, type: ws.type })
 
     // send status & all room members to new client
     sendRoomList(roomId)
+  }
+
+  // broadcast to all remotecontrols about new/changed room
+  // we need to do this after rooms have been set up
+  // if monitor joins -> meta.hasminitor = true
+  // if remote joins with room -> roomId
+  if (ws.type === "monitor") {
+    broadcast("remotecontrol", null, { reason: reason, id: ws.id, meta: roomsMeta.get(ws.id) })
+  }
+  if (ws.type === "remotecontrol" && roomId) {
+    broadcast("remotecontrol", null, { reason: reason, id: roomId, meta: roomsMeta.get(roomId) })
   }
 
   debugTables()
@@ -203,27 +218,56 @@ wss.on("connection", (ws, req) => {
       // participant switched room
       switch(data.reason) {
         case "changedroom":
-          broadcast("room", data.roomIdLeft, { reason: "left", id: ws.id, type: ws.type })
-          broadcast("room", data.roomIdJoined, { reason: "joined", id: ws.id, type: ws.type })
-          sendRoomList(data.roomIdJoined)
           let rt = null
           if (data.roomIdLeft) {
+            broadcast("room", data.roomIdLeft, { reason: "left", id: ws.id, type: ws.type })
             rt = roomsTable.get(data.roomIdLeft)
             rt.delete(ws.id)
           }
 
           if (data.roomIdJoined) {
+            broadcast("room", data.roomIdJoined, { reason: "joined", id: ws.id, type: ws.type })
+            sendRoomList(data.roomIdJoined)
             rt = roomsTable.get(data.roomIdJoined)
             rt.set(ws.id, { id: ws.id, type: ws.type })
           }
           break
         case "changedclientid":
           if (data.roomId) {
-            broadcast("room", data.roomId, { reason: "changedclientid", id: data.id, type: ws.type, sourceid: ws.id })
+            broadcast("room", data.roomId, { reason: "changedclientid", id: data.id, type: ws.type, sourceid: ws.id, meta: roomsMeta.get(ws.id) })
+            // add new name to room, remove old one
             room.set(data.id, { id: data.id, type: ws.type })
             room.delete(ws.id)
+
+            // add participants from potential new name room to old room before renaming it
+            const existinstingParticipants = roomsTable.get(data.id)
+            console.log("existinstingParticipants", existinstingParticipants)
+            if (existinstingParticipants) {
+              existinstingParticipants.forEach((existinstingParticipant, k) => {
+                if (!room.get(k)) {
+                  room.set(k, existinstingParticipant)
+                }
+              })
+            }
           }
-          broadcast(data.type, null, { reason: "changeclientid", id: data.id, type: ws.type, sourceid: ws.id })
+          switch(data.type) {
+            case "monitor":
+              roomsTable.set(data.id, roomsTable.get(ws.id))
+              roomsTable.delete(ws.id)
+              monitorsTable.set(data.id, monitorsTable.get(ws.id))
+              monitorsTable.delete(ws.id)
+              roomsMeta.set(data.id, roomsMeta.get(ws.id))
+              roomsMeta.delete(ws.id)
+              console.log(timestamp(), "renamed room " + ws.id + " => " + data.id)
+
+              broadcast("remotecontrol", null, { reason: "changedclientid", id: data.id, type: ws.type, sourceid: ws.id, x: 2 })
+              break
+            case "remotecontrol":
+              remoteControlsTable.set(data.id, remoteControlsTable.get(ws.id))
+              remoteControlsTable.delete(ws.id)
+              break
+          }
+          debugTables()
           ws.id = data.id
           break
         case "loadmovie":
@@ -254,30 +298,45 @@ wss.on("connection", (ws, req) => {
   })
 
   ws.on("close", event => {
-    if (roomId) {
-      room.delete(clientId)
-      console.log(timestamp(), "remove \"" + clientId + "\" from room \"" + roomId + "(" + room.size + ")\"")
-      if (!room.size) {
-        console.log(timestamp(), "remove room \"" + roomId + "\"")
-        roomsTable.delete(roomId)
-        roomsMeta.delete(roomId)
-      } else {
-        // broadcast to all members of chat about leaving client
-        broadcast("room", roomId, { reason: "left", id: clientId, type: clientType })
-      }
-    }
-    switch(clientType) {
-      case "remotecontrol":
-        // broadcast to all monitors about leaving remoteControl
-        broadcast("remotecontrol", null, { reason: "disconnected", id: clientId, type: clientType })
-        remoteControlsTable.delete(clientId)
-        break
+    switch (ws.type) {
       case "monitor":
-        // broadcast to all remotecontrols about leaving monitor
-        broadcast("monitor", null, { reason: "disconnected", id: clientId, type: clientType })
-        monitorsTable.delete(clientId)
+        room.delete(ws.id)
+        const meta = { status: "moviestopped", movie: "", hasmonitor: false }
+        roomsMeta.set(ws.id, meta) // hasmonitor: false assumes we only have 1 monitor per room
+        broadcast("room", ws.id, { reason: "left", id: ws.id, type: ws.type })
+        // keep room as long as participants
+        let reason = "roomchanged"
+        if (!room.size) {
+          reason = "roomdeleted"
+          console.log(timestamp(), "remove room \"" + ws.id + "\"")
+          roomsTable.delete(ws.id)
+          roomsMeta.delete(ws.id)
+        }
+        broadcast("remotecontrol", null, { reason: reason, id: ws.id, meta: meta })
+        monitorsTable.delete(ws.id)
+        console.log(timestamp(), "remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (room.size || 0) + ")\"")
+
+        break
+      case "remotecontrol":
+        // inform any room about leaving remotecontrol and delete
+        // TODO for now we iterate through all rooms
+        roomsTable.forEach( (r, id) => {
+          if (r.get(ws.id)) {
+            r.delete(ws.id)
+            broadcast("room", id, { reason: "left", id: ws.id, type: ws.type })
+            if (!r.size) {
+              console.log(timestamp(), "remove room \"" + id + "\"")
+              roomsTable.delete(id)
+              roomsMeta.delete(id)
+              console.log(timestamp(), "remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (r.size || 0) + ")\"")
+            }
+          }
+        })
+
+        remoteControlsTable.delete(ws.id)
         break
     }
+
     debugTables()
   })
 })

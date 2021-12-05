@@ -1,4 +1,4 @@
-const monitorList = document.querySelector("#monitor-list select")
+const roomList = document.querySelector("#room-list select")
 const remote = document.getElementById("remoteControl")
 const remotePlayStop = remote.querySelector(".play-stop")
 const remoteRewind = remote.querySelector(".rewind")
@@ -7,7 +7,7 @@ const remoteMovie = remote.querySelector(".movie")
 const moviesUl = document.querySelector("#movies-list .movies")
 const dirsUl = document.querySelector("#movies-list .dirs")
 let selectedMovie = null
-const monitors = new Map()
+const rooms = new Map()
 
 const templateVideoBox = document.getElementById("templateVideoBox").innerHTML
 const templateUrlBox = document.getElementById("templateUrlBox").innerHTML
@@ -17,6 +17,17 @@ const remoteEnabled = (status) => {
   remoteRewind.disabled = status ? false : true
   remoteForward.disabled = status ? false : true
 }
+
+const updateRemoteStatus = (meta) => {
+  remoteMovie.innerText = meta.movie
+  if (meta.status === "moviestopped") {
+    remotePlayStop.innerText = "Play"
+  }
+  else if (meta.status === "movieplaying") {
+    remotePlayStop.innerText = "Stop"
+  }
+}
+
 
 const timestamp2human = (timestamp) => {
   let duration = new Date(1000*timestamp).toISOString().substr(11, 8).replace(/00:/g, "")
@@ -53,61 +64,55 @@ const getMovies = (dir = "") => {
   })
 }
 
-// monitor list
-document.addEventListener("evt-monitorlist", event => {
-  event.detail.monitors.forEach(monitor => {
-    if (!monitors.get(monitor)) {
-      monitors.set(monitor, 1)
-      monitorList.options.add(new Option(monitor, monitor))
-      if (monitorId === monitor) monitorList.value = monitor
-    }
+// initial room list on page load
+document.addEventListener("evt-roomlist", event => {
+  event.detail.rooms.forEach(room => {
+    rooms.set(room.id, 1)
+    roomList.options.add(new Option((room.meta.hasmonitor ? "" : "-") + room.id, room.id))
+    if (monitorId === room.id) roomList.value = room.id
   })
+})
+
+// room was created
+document.addEventListener("evt-roomadded", event => {
+  const roomId = event.detail.id
+  if (!rooms.get(roomId)) {
+    rooms.set(roomId, 1)
+    roomList.options.add(new Option((event.detail.meta.hasmonitor ? "" : "-") + roomId, roomId))
+    if (monitorId === roomId) roomList.value = roomId
+  }
+})
+
+// room was deleted
+document.addEventListener("evt-roomdeleted", event => {
+  const roomId = event.detail.id
+  if (rooms.get(roomId)) {
+    rooms.delete(roomId)
+    const optionDeleted = roomList.querySelector("option[value=" + roomId + "]")
+    if (optionDeleted) optionDeleted.remove()
+    if (roomList.value === roomId) roomList.value = roomList.options[0]
+  }
+})
+
+// room was changed
+document.addEventListener("evt-roomchanged", event => {
+  const optionElm = roomList.querySelector("option[value=" + event.detail.id + "]")
+  if (optionElm) {
+    optionElm.text = (event.detail.meta.hasmonitor ? "" : "-") + event.detail.id
+  }
 })
 
 // participant list
 document.addEventListener("evt-participantlist", event => {
-  /*
-  event.detail.participants.forEach(participant => {
-    if (participant.type === "monitor" && participant.id == monitorId) remotePlayStop.disabled = false
-  })
-  */
   const meta = event.detail.meta
-  remoteMovie.innerText = meta.movie
-  if (meta.status === "moviestopped") {
-    remotePlayStop.innerText = "Play"
-  }
-  else if (meta.status === "movieplaying") {
-    remotePlayStop.innerText = "Stop"
-  }
+  updateRemoteStatus(meta)
   remoteEnabled(meta.movie)
-})
-
-// monitor connected
-document.addEventListener("evt-connected", event => {
-  const monitor = event.detail.id
-  if (!monitors.get(monitor)) {
-    monitors.set(monitor, 1)
-    monitorList.options.add(new Option(monitor, monitor))
-    if (monitorId === monitor) monitorList.value = monitor
-  }
-})
-
-// monitor disconnected
-document.addEventListener("evt-disconnected", event => {
-  const monitor = event.detail.id
-  if (monitors.get(monitor)) {
-    monitors.delete(monitor)
-    const optionDeleted = monitorList.querySelector("option[value=" + monitor + "]")
-    if (optionDeleted) optionDeleted.remove()
-    if (monitorList.value === monitor) monitorList.value = monitorList.options[0]
-  }
 })
 
 // participant joined
 document.addEventListener("evt-joined", event => {
   if (event.detail.type === "monitor") {
     const monitor = event.detail.id
-    // remotePlayStop.disabled = monitorId !== monitor
   }
 })
 
@@ -141,15 +146,29 @@ document.addEventListener("evt-left", event => {
 // participant changed id (for now only handle monitor)
 document.addEventListener("evt-changedclientid", event => {
   if (event.detail.type === "monitor") {
-    const newClientId = event.detail.id
-    const oldClientId = event.detail.source.id
-    const optionChanged = monitorList.querySelector("option[value=" + oldClientId + "]")
-    if (optionChanged) {
-      optionChanged.text = newClientId
-      optionChanged.value = newClientId
-      monitors.set(newClientId)
-      monitors.delete(oldClientId)
+    if (event.detail.meta) {
+      updateRemoteStatus(event.detail.meta)
+      remoteEnabled(true)
     }
+
+    const newClientId = event.detail.id
+    const oldClientId = event.detail.sourceid
+    const optionToRemove = roomList.querySelector("option[value=" + newClientId + "]")
+    const optionToChange = roomList.querySelector("option[value=" + oldClientId + "]")
+    if (optionToRemove) {
+      optionToRemove.remove()
+    }
+    // we need to wait, or the remove will mess up things as it seems :-(
+    setTimeout(() => {
+      if (optionToChange) {
+        optionToChange.text = newClientId
+        optionToChange.value = newClientId
+        if (monitorId === newClientId) roomList.value = newClientId
+        rooms.set(newClientId)
+        rooms.delete(oldClientId)
+        monitorId = newClientId
+      }
+    }, 100)
   }
 })
 
@@ -163,18 +182,18 @@ document.addEventListener("evt-moviestopped", event => {
   remotePlayStop.innerText = "Play"
 })
 
-// monitor selection change
-monitorList.addEventListener("change", event => {
-  monitor = event.target.value
-  console.log("remote changed", monitor)
+// room selection change
+roomList.addEventListener("change", event => {
+  roomId = event.target.value
+  console.log("remote changed room to ", roomId)
   ws.send(JSON.stringify({
     reason: "changedroom",
     roomIdLeft: (monitorId === "---" ? "" : monitorId),
-    roomIdJoined: (monitor === "---" ? "" : monitor)
+    roomIdJoined: (roomId === "---" ? "" : roomId)
   }))
-  monitorId = monitor
+  monitorId = roomId
 
-  if (monitor === "---") {
+  if (roomId === "---") {
     remoteEnabled(false)
     remoteMovie.innerText = ""
   }
@@ -182,7 +201,9 @@ monitorList.addEventListener("change", event => {
 
 // send "play/stop movie" command
 remote.addEventListener("click", event => {
-  ws.send(JSON.stringify({ reason: event.target.classList[0].replace("-", ""), roomId: monitorId }))
+  if (event.target.tagName === "BUTTON") {
+    ws.send(JSON.stringify({ reason: event.target.classList[0].replace("-", ""), roomId: monitorId }))
+  }
 })
 
 // send "load movie" command

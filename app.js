@@ -177,19 +177,26 @@ const walk = async (moviesDir, curPath, results={ movies: [], dirs: [] }) => {
 app.get([ "/api/movies/:path(*)", "/api/movies" ], async (req, res) => {
   const curPath = req.params.path || ""
   const moviesDir = path.join(config.moviesBasePath, curPath)
-  const dirData = await walk(moviesDir, curPath)
-  return res.status(200).send({ moviesDir: moviesDir, data: dirData })
+  try {
+    const dirData = await walk(moviesDir, curPath)
+    return res.status(200).send({ moviesDir: moviesDir, data: dirData })
+  } catch (e) {
+    return res.stats(404).send({ moviesDir: "", data: {} })
+  }
 })
 
 app.get("*", async (req, res) => {
   const curPath = req.url.replace(/^\//, "")
   const moviesDir = path.join(config.moviesBasePath, curPath)
-  const dirData = await walk(moviesDir, curPath)
-
-  res.render("home", {
-    movies: dirData.movies,
-    dirs: dirData.dirs,
-    scripts: ["home.js"]
-  })
+  try {
+    const dirData = await walk(moviesDir, curPath)
+    res.render("home", {
+      movies: dirData.movies,
+      dirs: dirData.dirs,
+      scripts: ["home.js"]
+    })
+  } catch (e) {
+    return res.render("404")
+  }
 })
 
