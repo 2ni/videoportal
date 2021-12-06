@@ -45,7 +45,7 @@ const _startWebsocket = (id, monitorId, clientType) => {
       console.log("connection closed", trial)
       trial++
       ws = null
-      // setTimeout(_startWebsocket.bind(null, id, monitorId, clientType), trial < 3 ? 300 : 5000)
+      setTimeout(_startWebsocket.bind(null, id, monitorId, clientType), trial < 3 ? 300 : 5000)
     }
   }
 }

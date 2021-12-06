@@ -77,7 +77,6 @@ a:hover {
   margin-right: 1rem;
   border: 1px solid;
   width: 200px;
-  height: 125px;
   position: relative;
 }
 
@@ -116,7 +115,7 @@ a:hover {
 }
 
 #movies-list ul.movies a .meta {
-  text-align: left;
+  text-align: center;
   padding-top: .5rem;
   padding-left: .5rem;
   box-sizing: border-box;
@@ -182,6 +181,8 @@ a:hover {
 
 #remoteControl {
   text-align: center;
+  display: flex;
+  flex-wrap: nowrap;
 }
 
 #remoteControl button {
@@ -269,3 +270,23 @@ a:hover {
     background-color: white;
   }
 }
+
+/*
+ * mobile version
+ */
+@media only screen and (max-width: 575px) {
+  #remoteControl {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #remoteControl button {
+    width: 100%;
+  }
+
+  #movies-list ul.movies li {
+    width: 100%;
+    height: unset;
+  }
+}
+
