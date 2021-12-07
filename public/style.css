@@ -11,6 +11,7 @@ body {
 
 #header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   background-color: #eee;
 }
@@ -29,10 +30,20 @@ body {
   padding: 0;
 }
 
+#header .client-control span {
+  font-size: .8rem;
+}
+
+#header .client-control span:first-child:after {
+  content: "\00a0|\00a0";
+}
+
+
 #header .breadcrumb {
   padding: .8rem 1rem;
   margin: 0;
   list-style: none;
+  box-sizing: border-box;
 }
 
 #header .breadcrumb li {

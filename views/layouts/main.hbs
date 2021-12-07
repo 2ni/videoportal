@@ -15,14 +15,17 @@
       <li><a href="{{this.url}}">{{this.name}}</a></li>
       {{/each}}
     </ul>
-    {{#if useWebsockets}}
-      <div class="client-control">
+    <div class="client-control">
+      {{#if useWebsockets}}
         <div id="client-id"><input type="text"></input></div>
         {{#if isRemote}}
         <div id="room-list"><select name="rooms"><option value="---">---</option></select></div>
         {{/if}}
-      </div>
-    {{/if}}
+      {{else}}
+        <span><a href="/remote" title="you can also use '/remote/name_of_remotecontrol/name_of_monitor'">Remote</a></span>
+        <span><a href="/monitor" title="you can also use '/monitor/name_of_monitor'">Monitor</a></span>
+      {{/if}}
+    </div>
   </div>
   {{{body}}}
   <div id="overlay"><button></button></div>
