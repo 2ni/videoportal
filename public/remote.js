@@ -68,7 +68,7 @@ const getMovies = (dir = "") => {
 document.addEventListener("evt-roomlist", event => {
   event.detail.rooms.forEach(room => {
     rooms.set(room.id, 1)
-    roomList.options.add(new Option((room.meta.hasmonitor ? "" : "-") + room.id, room.id))
+    roomList.options.add(new Option((room.meta.hasmonitor ? "" : "\u23FE ") + room.id, room.id))
     if (monitorId === room.id) roomList.value = room.id
   })
 })
@@ -78,7 +78,7 @@ document.addEventListener("evt-roomadded", event => {
   const roomId = event.detail.id
   if (!rooms.get(roomId)) {
     rooms.set(roomId, 1)
-    roomList.options.add(new Option((event.detail.meta.hasmonitor ? "" : "-") + roomId, roomId))
+    roomList.options.add(new Option((event.detail.meta.hasmonitor ? "" : "\u23FE ") + roomId, roomId))
     if (monitorId === roomId) roomList.value = roomId
   }
 })
@@ -98,7 +98,7 @@ document.addEventListener("evt-roomdeleted", event => {
 document.addEventListener("evt-roomchanged", event => {
   const optionElm = roomList.querySelector("option[value=" + event.detail.id + "]")
   if (optionElm) {
-    optionElm.text = (event.detail.meta.hasmonitor ? "" : "-") + event.detail.id
+    optionElm.text = (event.detail.meta.hasmonitor ? "" : "\u23FE ") + event.detail.id
   }
 })
 

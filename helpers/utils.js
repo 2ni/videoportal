@@ -1,5 +1,6 @@
 const timestamp = () => {
-  return new Date().toISOString().slice(0,19).replace(/T/, " ")
+  const tzoffset = (new Date()).getTimezoneOffset() * 60000 // offset in ms
+  return (new Date(Date.now() - tzoffset)).toISOString().slice(0,19).replace(/T/, " ")
 }
 
 const capitalize = (str) => {

@@ -13,9 +13,9 @@ const remoteControlsTable = new Map() // id: wss
 const roomsTable = new Map()          // id(monitorId) => id:{id, type}, id:{id, type}
 const roomsMeta = new Map()           // id(monitorId) => {movie:"", status:"", hasmonitor: false}
 
-const debugTables = () => {
+const debugTables = (context, client) => {
   console.log("")
-  console.log(timestamp(), "*********** TABLES ***********")
+  console.log(timestamp(), "*********** TABLES (" + client.type + ":" + client.id + " " + context + ") ***********")
   console.log(timestamp(), "monitors", Array.from(monitorsTable.keys()))
   console.log(timestamp(), "remotecontrols", Array.from(remoteControlsTable.keys()))
   console.log(timestamp(), "rooms")
@@ -32,7 +32,7 @@ const debugTables = () => {
     process.stdout.write(timestamp() + "  " + key + ": ")
     console.log(meta)
   })
-  console.log(timestamp(), "******************************")
+  console.log(timestamp(), "******************************\n")
 }
 
 
@@ -120,7 +120,7 @@ wss.on("connection", (ws, req) => {
 
   if ((clientType === "remotecontrol" && remoteControlsTable.get(clientId))
     || (clientType === "monitor" && monitorsTable.get(clientId))) {
-      console.log(timestamp(), "clientid taken: " + clientId + "/" + clientType)
+      console.log(timestamp(), "clientid taken: " + clientType + ":" + clientId)
       return ws.close(4001, "clientid taken")
   }
 
@@ -206,7 +206,7 @@ wss.on("connection", (ws, req) => {
     broadcast("remotecontrol", null, { reason: reason, id: roomId, meta: roomsMeta.get(roomId) })
   }
 
-  debugTables()
+  debugTables("connect", ws)
 
 
   ws.on("message", (data, isBinary) => {
@@ -267,7 +267,6 @@ wss.on("connection", (ws, req) => {
               remoteControlsTable.delete(ws.id)
               break
           }
-          debugTables()
           ws.id = data.id
           break
         case "loadmovie":
@@ -295,12 +294,15 @@ wss.on("connection", (ws, req) => {
     } catch (e) {
       console.log(timestamp(), "incoming parsing error", e)
     }
+
+    debugTables("message", ws)
   })
 
   ws.on("close", event => {
     switch (ws.type) {
       case "monitor":
         room.delete(ws.id)
+        console.log(timestamp(), "remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (room.size || 0) + ")\"")
         const meta = { status: "moviestopped", movie: "", hasmonitor: false }
         roomsMeta.set(ws.id, meta) // hasmonitor: false assumes we only have 1 monitor per room
         broadcast("room", ws.id, { reason: "left", id: ws.id, type: ws.type })
@@ -314,7 +316,6 @@ wss.on("connection", (ws, req) => {
         }
         broadcast("remotecontrol", null, { reason: reason, id: ws.id, meta: meta })
         monitorsTable.delete(ws.id)
-        console.log(timestamp(), "remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (room.size || 0) + ")\"")
 
         break
       case "remotecontrol":
@@ -323,12 +324,12 @@ wss.on("connection", (ws, req) => {
         roomsTable.forEach( (r, id) => {
           if (r.get(ws.id)) {
             r.delete(ws.id)
+            console.log(timestamp(), "remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (r.size || 0) + ")\"")
             broadcast("room", id, { reason: "left", id: ws.id, type: ws.type })
             if (!r.size) {
               console.log(timestamp(), "remove room \"" + id + "\"")
               roomsTable.delete(id)
               roomsMeta.delete(id)
-              console.log(timestamp(), "remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (r.size || 0) + ")\"")
             }
           }
         })
@@ -337,7 +338,7 @@ wss.on("connection", (ws, req) => {
         break
     }
 
-    debugTables()
+    debugTables("disconnect", ws)
   })
 })
 

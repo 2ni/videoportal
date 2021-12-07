@@ -4,14 +4,6 @@ body {
   letter-spacing: .1rem;
 }
 
-#dbg {
-  font-size: .7rem;
-  padding: 1rem;
-  box-sizing: border-box;
-  background-color: #feffa3;
-  display: none;
-}
-
 #movies-list {
   margin: 1rem;
   margin-top: .2rem;
@@ -181,8 +173,6 @@ a:hover {
 
 #remoteControl {
   text-align: center;
-  display: flex;
-  flex-wrap: nowrap;
 }
 
 #remoteControl button {
@@ -274,19 +264,26 @@ a:hover {
 /*
  * mobile version
  */
-@media only screen and (max-width: 575px) {
+@media only screen and (max-width: 590px) {
   #remoteControl {
     flex-direction: column;
     align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
   }
 
   #remoteControl button {
-    width: 100%;
+    width: 90%;
   }
 
   #movies-list ul.movies li {
     width: 100%;
     height: unset;
+  }
+
+  #movies-list ul.dirs li {
+    font-size: 1.5rem;
+    line-height: 2rem;
   }
 }
 
