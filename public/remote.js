@@ -69,10 +69,8 @@ const getMovies = (dir = "") => {
 // initial room list on page load
 document.addEventListener("evt-roomlist", event => {
   const triggerChange = rooms.get(monitorId) // send join event in case wss restarts
-  console.log("triggerChange", triggerChange)
   event.detail.rooms.forEach(room => {
     if (!rooms.get(room.id)) {
-      console.log("adding room to list", room.id)
       rooms.set(room.id, 1)
       roomList.options.add(new Option((room.meta.hasmonitor ? "" : "\u23FE ") + room.id, room.id))
       if (monitorId === room.id) roomList.value = room.id

@@ -1,6 +1,12 @@
+import { env } from "../config/app.js"
+
 const timestamp = () => {
-  const tzoffset = (new Date()).getTimezoneOffset() * 60000 // offset in ms
-  return (new Date(Date.now() - tzoffset)).toISOString().slice(0,19).replace(/T/, " ")
+  if (env === "localhost") {
+    const tzoffset = (new Date()).getTimezoneOffset() * 60000 // offset in ms
+    return (new Date(Date.now() - tzoffset)).toISOString().slice(0,19).replace(/T/, " ")
+  }
+
+  return ""
 }
 
 const capitalize = (str) => {
