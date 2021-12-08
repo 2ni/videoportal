@@ -8,6 +8,7 @@ const moviesUl = document.querySelector("#movies-list .movies")
 const dirsUl = document.querySelector("#movies-list .dirs")
 let selectedMovie = null
 const rooms = new Map()
+let hasMonitor = false
 
 const templateVideoBox = document.getElementById("templateVideoBox").innerHTML
 const templateUrlBox = document.getElementById("templateUrlBox").innerHTML
@@ -86,6 +87,7 @@ document.addEventListener("evt-roomlist", event => {
 // room was created
 document.addEventListener("evt-roomadded", event => {
   const roomId = event.detail.id
+  hasMonitor = event.detail.meta.hasmonitor
   if (!rooms.get(roomId)) {
     rooms.set(roomId, 1)
     roomList.options.add(new Option((event.detail.meta.hasmonitor ? "" : "\u23FE ") + roomId, roomId))
@@ -106,6 +108,7 @@ document.addEventListener("evt-roomdeleted", event => {
 
 // room was changed
 document.addEventListener("evt-roomchanged", event => {
+  hasMonitor = event.detail.meta.hasmonitor
   const optionElm = roomList.querySelector("option[value=" + event.detail.id + "]")
   if (optionElm) {
     optionElm.text = (event.detail.meta.hasmonitor ? "" : "\u23FE ") + event.detail.id
@@ -115,6 +118,7 @@ document.addEventListener("evt-roomchanged", event => {
 // participant list
 document.addEventListener("evt-participantlist", event => {
   const meta = event.detail.meta
+  hasMonitor = meta.hasmonitor
   updateRemoteStatus(meta)
   remoteEnabled(meta.movie)
 })
@@ -218,6 +222,11 @@ remote.addEventListener("click", event => {
 
 // send "load movie" command
 moviesUl.addEventListener("click", event => {
+  if (!hasMonitor) {
+    event.preventDefault()
+    return
+  }
+
   let elm = event.target
   let limit = 5;
   while (elm.tagName !== "A" && --limit > 0) {
@@ -228,9 +237,12 @@ moviesUl.addEventListener("click", event => {
     if (selectedMovie !== null) {
       moviesUl.children[selectedMovie].querySelector("a").style.backgroundColor = ""
     }
-    elm.style.backgroundColor = "rgba(128, 0, 0, .2)"
     ws.send(JSON.stringify({ reason: "loadmovie", movie: movieToLoad, roomId: monitorId }))
     selectedMovie = [...moviesUl.children].indexOf(elm.parentElement)
+    elm.classList.add("flash")
+    setTimeout(() => {
+      elm.classList.remove("flash")
+    }, 500)
   }
   event.preventDefault()
 })
