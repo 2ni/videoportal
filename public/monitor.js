@@ -3,6 +3,9 @@ const remoteControlsElm = document.querySelector("#remoteControls")
 const remoteControls = new Map()
 const templateRemoteControlbox = document.getElementById("templateRemoteControlBox").innerHTML
 
+// start websocket communication
+handleWebsocket(document.querySelector(".client-control"))
+
 const showErrorOverlay = (error) => {
   const overlay = document.getElementById("overlay")
   const overlayButton = overlay.querySelector("button")
@@ -44,6 +47,18 @@ const updateRemoteControlActivity = (source, activity) => {
   }
 }
 
+// video starts playing
+videoObject.addEventListener("play", event => {
+  const movieUrl = videoSource.getAttribute("src").replace(/^\/movies\//, "")
+  ws.send(JSON.stringify({ reason: "movieplaying", movie: movieUrl, roomId: monitorId }))
+})
+
+// video stopped
+videoObject.addEventListener("pause", event => {
+  const movieUrl = videoSource.getAttribute("src").replace(/^\/movies\//, "")
+  ws.send(JSON.stringify({ reason: "moviestopped", movie: movieUrl, roomId: monitorId }))
+})
+
 document.addEventListener("evt-loadmovie", event => {
   // save old currenttime
   if (videoObject.currentTime !=0 && movie) {
@@ -65,11 +80,14 @@ document.addEventListener("evt-loadmovie", event => {
   updateRemoteControlActivity(event.detail.source, "Loaded movie")
 })
 
+/*
+ * play or stop cmd received
+ * notification about playing/stopped is sent on video eventlistener "play", "pause"
+ */
 document.addEventListener("evt-playstop", event => {
   const movieUrl = videoSource.getAttribute("src").replace(/^\/movies\//, "")
   if (videoObject.paused) {
     videoObject.play().then(() => {
-      ws.send(JSON.stringify({ reason: "movieplaying", movie: movieUrl, roomId: monitorId }))
       updateRemoteControlActivity(event.detail.source, "Started movie")
     })
     .catch(error => {
@@ -79,7 +97,6 @@ document.addEventListener("evt-playstop", event => {
     })
   } else {
     videoObject.pause()
-    ws.send(JSON.stringify({ reason: "moviestopped", movie: movieUrl, roomId: monitorId }))
     updateRemoteControlActivity(event.detail.source, "Stopped movie")
   }
 })
@@ -117,10 +134,8 @@ document.addEventListener("evt-left", event => {
 
 document.addEventListener("evt-participantlist", event => {
   // clear all first
-  remoteControlsElm.querySelectorAll("li").forEach(li => {
-    remoteControls.clear()
-    li.remove()
-  })
+  remoteControls.clear()
+  remoteControlsElm.innerHTML = ""
 
   let id = null
   let type = null

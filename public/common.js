@@ -26,7 +26,7 @@ const _startWebsocket = (id, monitorId, clientType) => {
       const eventsAllowed = [ "monitorlist", "participantlist", "connected", "disconnected", "joined", "left", "changedclientid", "loadmovie", "movieloaded", "playstop", "forward", "rewind", "movieplaying", "moviestopped", "movieplayingerror", "remoteactivated", "roomadded", "roomdeleted", "roomchanged", "roomlist" ]
       if (eventsAllowed.includes(data.reason)) {
         console.log("evt-" + data.reason, dataEvt)
-        document.dispatchEvent(new CustomEvent("evt-" + data.reason, { "detail": dataEvt }))
+        document.dispatchEvent(new CustomEvent("evt-" + data.reason, { detail: dataEvt }))
       } else {
         console.log("event not allowed", data.reason, dataEvt)
       }
@@ -101,5 +101,3 @@ const handleWebsocket = (clientControlElm) => {
     }
   })
 }
-
-handleWebsocket(document.querySelector(".client-control"))

@@ -44,6 +44,8 @@ videoObject.addEventListener("seeked", event => {
 // TODO
 })
 
+// save progress
+// TODO switch to cookie with max-age
 window.addEventListener("unload", event => {
   // fires also on load, so wie just ignore if 0
   if (videoObject.currentTime !== 0) {

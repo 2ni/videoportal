@@ -12,6 +12,9 @@ const rooms = new Map()
 const templateVideoBox = document.getElementById("templateVideoBox").innerHTML
 const templateUrlBox = document.getElementById("templateUrlBox").innerHTML
 
+// start websocket communication
+handleWebsocket(document.querySelector(".client-control"))
+
 const remoteEnabled = (status) => {
   remotePlayStop.disabled = status ? false : true
   remoteRewind.disabled = status ? false : true
@@ -27,7 +30,6 @@ const updateRemoteStatus = (meta) => {
     remotePlayStop.innerText = "Stop"
   }
 }
-
 
 const timestamp2human = (timestamp) => {
   let duration = new Date(1000*timestamp).toISOString().substr(11, 8).replace(/00:/g, "")
@@ -66,11 +68,21 @@ const getMovies = (dir = "") => {
 
 // initial room list on page load
 document.addEventListener("evt-roomlist", event => {
+  const triggerChange = rooms.get(monitorId) // send join event in case wss restarts
+  console.log("triggerChange", triggerChange)
   event.detail.rooms.forEach(room => {
-    rooms.set(room.id, 1)
-    roomList.options.add(new Option((room.meta.hasmonitor ? "" : "\u23FE ") + room.id, room.id))
-    if (monitorId === room.id) roomList.value = room.id
+    if (!rooms.get(room.id)) {
+      console.log("adding room to list", room.id)
+      rooms.set(room.id, 1)
+      roomList.options.add(new Option((room.meta.hasmonitor ? "" : "\u23FE ") + room.id, room.id))
+      if (monitorId === room.id) roomList.value = room.id
+    }
   })
+
+  if (triggerChange) {
+    monitorId = "---" // avoid sending left + joined => only joined
+    roomList.dispatchEvent(new Event("change"))
+  }
 })
 
 // room was created
