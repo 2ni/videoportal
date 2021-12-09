@@ -1,6 +1,7 @@
 const roomList = document.querySelector("#room-list select")
 const remote = document.getElementById("remoteControl")
 const remotePlayStop = remote.querySelector(".play-stop")
+const remotePlayStopText = remotePlayStop.querySelector("span")
 const remoteRewind = remote.querySelector(".rewind")
 const remoteForward = remote.querySelector(".forward")
 const remoteMovie = remote.querySelector(".movie")
@@ -25,10 +26,10 @@ const remoteEnabled = (status) => {
 const updateRemoteStatus = (meta) => {
   remoteMovie.innerText = meta.movie
   if (meta.status === "moviestopped") {
-    remotePlayStop.innerText = "Play"
+    remotePlayStopText.innerText = "\u25ba"
   }
   else if (meta.status === "movieplaying") {
-    remotePlayStop.innerText = "Stop"
+    remotePlayStopText.innerText = "\u2759\u2759"
   }
 }
 
@@ -152,7 +153,7 @@ document.addEventListener("evt-left", event => {
   if (event.detail.type === "monitor") {
     const monitor = event.detail.id
     remoteMovie.innerText = ""
-    remotePlayStop.innerText = "Play"
+    remotePlayStopText.innerText = "\u25ba"
     remoteEnabled(false)
   }
 })
@@ -188,12 +189,12 @@ document.addEventListener("evt-changedclientid", event => {
 
 // monitor is playing movie
 document.addEventListener("evt-movieplaying", event => {
-  remotePlayStop.innerText = "Stop"
+  remotePlayStopText.innerText = "\u2759\u2759"
 })
 
 // monitor has stopped movie
 document.addEventListener("evt-moviestopped", event => {
-  remotePlayStop.innerText = "Play"
+  remotePlayStopText.innerText = "\u25ba"
 })
 
 // room selection change
@@ -215,8 +216,11 @@ roomList.addEventListener("change", event => {
 
 // send "play/stop movie" command
 remote.addEventListener("click", event => {
-  if (event.target.tagName === "BUTTON") {
-    ws.send(JSON.stringify({ reason: event.target.classList[0].replace("-", ""), roomId: monitorId }))
+  let elm = event.target
+  let limit = 3
+  while (elm.tagName !== "BUTTON" && --limit > 0) elm = elm.parentElement
+  if (elm.tagName === "BUTTON") {
+    ws.send(JSON.stringify({ reason: elm.classList[0].replace("-", ""), roomId: monitorId }))
   }
 })
 

@@ -112,6 +112,7 @@ app.get("/play/:movie([^$]+)", (req, res) => {
   const nonce = crypto.randomBytes(16).toString("base64")
   res.set("Content-Security-Policy", "script-src 'self' 'nonce-" + nonce + "'")
   res.render("play", {
+    page: "play",
     nonce: nonce,
     jsInit: {
       movie: req.params.movie,
@@ -124,6 +125,7 @@ app.get("/play/:movie([^$]+)", (req, res) => {
 app.get("/monitor/:monitorId?", (req, res) => {
   const nonce = crypto.randomBytes(16).toString("base64")
   res.render("monitor", {
+    page: "monitor",
     nonce: nonce,
     useWebsockets: true,
     jsInit: {
@@ -137,6 +139,7 @@ app.get("/remote/:remoteId?/:monitorId?", async (req, res) => {
   const nonce = crypto.randomBytes(16).toString("base64")
 
   res.render("remote", {
+    page: "remote",
     nonce: nonce,
     useWebsockets: true,
     isRemote: true,
