@@ -1,7 +1,7 @@
 let ws = null
 let trial = 0
 
-const _startWebsocket = (id, monitorId, clientType) => {
+const _startWebsocket = (id, clientType) => {
   if (id) {
     const wscmd = "ws"
       + (window.location.protocol === "https" ? "s" : "")
@@ -45,7 +45,7 @@ const _startWebsocket = (id, monitorId, clientType) => {
       console.log("connection closed", trial)
       trial++
       ws = null
-      setTimeout(_startWebsocket.bind(null, id, monitorId, clientType), trial < 3 ? 300 : 5000)
+      setTimeout(_startWebsocket.bind(null, id, clientType), trial < 3 ? 300 : 5000)
     }
   }
 }
@@ -84,7 +84,7 @@ const handleWebsocket = (clientControlElm) => {
     window.localStorage.setItem("client-id", clientId)
   }
 
-  _startWebsocket(clientId, monitorId, isRemoteControl ? "remotecontrol" : "monitor")
+  _startWebsocket(clientId, isRemoteControl ? "remotecontrol" : "monitor")
   clientIdElm.setAttribute("value", clientId)
 
   clientIdElm.addEventListener("keydown", event => {
