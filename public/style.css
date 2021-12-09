@@ -16,6 +16,7 @@ body.monitor #video-holder,
 body.play #video-holder {
   flex: 1;
   margin: 0 auto;
+  position: relative;
 }
 
 body.monitor #video-holder video,

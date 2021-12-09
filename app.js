@@ -184,8 +184,35 @@ app.get([ "/api/movies/:path(*)", "/api/movies" ], async (req, res) => {
     const dirData = await walk(moviesDir, curPath)
     return res.status(200).send({ moviesDir: moviesDir, data: dirData })
   } catch (e) {
-    return res.stats(404).send({ moviesDir: "", data: {} })
+    return res.status(404).send({ moviesDir: "", data: {} })
   }
+})
+
+/*
+ * get next movie
+ * eg http -b :3001/api/movie/next/sacha/SachaS01E01.mp4
+ */
+app.get("/api/movie/next:path(*)", async (req, res) => {
+  const absPath = path.join(config.moviesBasePath, req.params.path || "")
+  const movieDir = path.dirname(absPath)
+  const movieFn = path.basename(absPath)
+  const files = await fsp.readdir(movieDir, { withFileTypes: true })
+  let next = false
+  let nextMovie = null
+  for (const file of files) {
+    if (!file.isFile()) continue
+    const f = await filetype.fromFile(path.join(movieDir, file.name))
+    if (f && f.mime === "video/mp4") {
+      if (next) {
+        nextMovie = path.join(path.dirname(req.params.path), file.name)
+        break
+      } else if (file.name === movieFn) {
+        next = true
+      }
+    }
+  }
+
+  return res.status(200).send({ nextMovie: nextMovie })
 })
 
 app.get("*", async (req, res) => {

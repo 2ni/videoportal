@@ -1,4 +1,8 @@
 const videoObject = document.querySelector("#video-holder video")
+const overlay = document.querySelector("#overlay")
+const overlayButton = overlay.querySelector("button")
+let nextMovieElm = null
+
 if (typeof startTime !== "undefined" && startTime) {
   videoObject.currentTime = startTime
 } else if (typeof movie !== "undefined" && window.localStorage.getItem(movie) !== null) {
@@ -34,9 +38,41 @@ videoObject.addEventListener("click", event => {
   videoObject.blur()
 })
 
-// video has finished
+videoObject.addEventListener("timeupdate", event => {
+  const timeBeforeEnd = 60
+  if (!nextMovieElm && videoObject.currentTime > (videoObject.duration - timeBeforeEnd)) {
+    fetch("/api/movie/next/" + window.location.pathname.replace(/^\/play\//, ""), { method: "GET", headers: {} }).then(r => {
+      return r.json()
+    }).then(response => {
+      if (response.nextMovie) {
+        nextMovieElm = document.createElement("div")
+        let movieName = response.nextMovie.replace(/^.*?([^/]*)$/, "$1").replace(/\.[^.]*$/, "")
+        nextMovieElm.innerHTML = "<a href=\"/play" + response.nextMovie + "\">" + movieName + "</a>"
+        nextMovieElm.style.cssText = "position: absolute; top: 50%; background: white; right: 0; padding: .1rem; opacity: .2"
+        videoObject.parentNode.insertBefore(nextMovieElm, videoObject.nextSibling)
+      }
+    })
+  } else if (nextMovieElm && videoObject.currentTime <= (videoObject.duration - timeBeforeEnd)) {
+    nextMovieElm.remove()
+    nextMovieElm = null
+  }
+})
+
+/*
+ * video has finished
+ * load next movie only if we were in fullscreen mode
+ * it'll leave fullscreen when loading
+ */
 videoObject.addEventListener("ended", event => {
-// TODO
+  if ((window.fullScreen) || (window.innerWidth == screen.width && window.innerHeight == screen.height)) {
+    fetch("/api/movie/next/" + window.location.pathname.replace(/^\/play\//, ""), { method: "GET", headers: {} }).then(r => {
+      return r.json()
+    }).then(response => {
+      if (response.nextMovie) {
+        window.location.replace("/play" + response.nextMovie)
+      }
+    })
+  }
 })
 
 // forward, rewind or set new time
@@ -53,8 +89,6 @@ window.addEventListener("unload", event => {
   }
 })
 
-const overlay = document.querySelector("#overlay")
-const overlayButton = overlay.querySelector("button")
 const requestFullScreen = videoObject.requestFullscreen || videoObject.mozRequestFullScreen || videoObject.webkitRequestFullScreen || videoObject.msRequestFullscreen
 const cancelFullScreen = document.exitFullscreen || document.mozCancelFullScreen || document.webkitExitFullscreen || document.msExitFullscreen
 let timer
