@@ -286,7 +286,7 @@ wss.on("connection", (ws, req) => {
           if (["movieplaying", "moviestopped"].includes(data.reaon)) {
             meta.status = data.reason
             roomsMeta.set(roomId, meta)
-          } else if (data.reason === "movieloaded") {
+          } else if (data.reason === "movieloaded" || data.reason === "loadmovie") {
             meta.movie = data.movie
             roomsMeta.set(roomId, meta)
           }

@@ -18,11 +18,16 @@ const templateUrlBox = document.getElementById("templateUrlBox").innerHTML
 // start websocket communication
 handleWebsocket(document.querySelector(".client-control"))
 
-const remoteEnabled = (newmovie) => {
-  if (newmovie) {
+const remoteEnabled = (newmovie, currenttime) => {
+  remoteMovie.innerHTML = newmovie ? ((hasMonitor ? "" : "\u23FE ")
+  + newmovie.replace(/^.*?([^/]*)\.[^.]*$/, "$1")
+  + (currenttime ? "<span class=\"currenttime\">" + timestamp2human(currenttime) + "</span>" : "")) : ""
+
+  if (newmovie && hasMonitor) {
     remotePlayStop.disabled = false
     remoteRewind.disabled = false
     remoteForward.disabled = false
+
     fetch("/api/movie/next/" + newmovie, { method: "GET", headers: {} }).then(r => {
       return r.json()
     }).then(response => {
@@ -42,6 +47,7 @@ const remoteEnabled = (newmovie) => {
       }
     })
   } else {
+    remoteMovie.innerHTML = remoteMovie.innerHTML ? ("\u23FE " + remoteMovie.innerHTML.replace(/\u23FE /, "")) : ""
     remotePlayStop.disabled = true
     remoteRewind.disabled = true
     remoteForward.disabled = true
@@ -54,7 +60,6 @@ const remoteEnabled = (newmovie) => {
 }
 
 const updateRemoteStatus = (meta) => {
-  remoteMovie.innerText = meta.movie.replace(/^.*?([^/]*)\.[^.]*$/, "$1")
   if (meta.status === "moviestopped") {
     remotePlayStopText.innerText = "play_circle_filled"
   }
@@ -140,6 +145,7 @@ document.addEventListener("evt-roomdeleted", event => {
 // room was changed
 document.addEventListener("evt-roomchanged", event => {
   hasMonitor = event.detail.meta.hasmonitor
+  remoteEnabled(event.detail.meta.movie)
   const optionElm = roomList.querySelector("option[value=" + event.detail.id + "]")
   if (optionElm) {
     optionElm.text = (event.detail.meta.hasmonitor ? "" : "\u23FE ") + event.detail.id
@@ -155,31 +161,40 @@ document.addEventListener("evt-participantlist", event => {
 })
 
 // participant joined
+/*
 document.addEventListener("evt-joined", event => {
   if (event.detail.type === "monitor") {
     const monitor = event.detail.id
   }
 })
+*/
 
 // monitor loaded movie
 document.addEventListener("evt-movieloaded", event => {
+  remoteEnabled(event.detail.movie, event.detail.currenttime)
+})
+
+// remote loaded movie
+document.addEventListener("evt-loadmovie", event => {
   remoteEnabled(event.detail.movie)
-  remoteMovie.innerHTML = event.detail.movie.replace(/^.*?([^/]*)\.[^.]*$/, "$1")
-    + "<span class=\"currenttime\">" + timestamp2human(event.detail.currenttime) + "</span>"
 })
 
 // monitor can not  be controlled
 document.addEventListener("evt-movieplayingerror", event => {
-  remoteEnabled(null)
+  remoteEnabled(event.detail.movie)
   remote.querySelector(".status").innerText = event.detail.msg
 })
 
+/*
+ * monitor got user interaction and we can remote control it
+ */
 document.addEventListener("evt-remoteactivated", event => {
-  remoteEnabled(event.detail.meta.movie)
+  remoteEnabled(event.detail.movie, event.detail.currenttime)
   remote.querySelector(".status").innerText = ""
 })
 
 // participant left
+/*
 document.addEventListener("evt-left", event => {
   if (event.detail.type === "monitor") {
     const monitor = event.detail.id
@@ -188,6 +203,7 @@ document.addEventListener("evt-left", event => {
     remoteEnabled(null)
   }
 })
+*/
 
 // participant changed id (for now only handle monitor)
 document.addEventListener("evt-changedclientid", event => {
@@ -263,8 +279,9 @@ remote.addEventListener("click", event => {
 })
 
 // send "load movie" command
+// we can only load a movie if we are part of a room
 moviesUl.addEventListener("click", event => {
-  if (!hasMonitor) {
+  if (!monitorId) {
     event.preventDefault()
     return
   }
@@ -275,6 +292,7 @@ moviesUl.addEventListener("click", event => {
     elm = elm.parentElement
   }
   const movieToLoad = elm && elm.getAttribute("href") && elm.getAttribute("href").replace(/^\/[^/]*\//, "")
+  remoteEnabled(movieToLoad)
   if (movieToLoad) {
     ws.send(JSON.stringify({ reason: "loadmovie", movie: movieToLoad, roomId: monitorId }))
     elm.classList.add("flash")

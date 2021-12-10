@@ -16,7 +16,7 @@ const showErrorOverlay = (error) => {
 
 const activateRemote = event => {
   overlay.style.display = "none"
-  ws.send(JSON.stringify({ reason: "remoteactivated", roomId: monitorId, meta: { movie: getCurrentMovie() } }))
+  ws.send(JSON.stringify({ reason: "remoteactivated", roomId: monitorId, movie: getCurrentMovie(), currenttime: videoObject.currentTime }))
   overlayButton.removeEventListener("click", activateRemote)
 }
 
