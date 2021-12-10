@@ -47,16 +47,37 @@ const updateRemoteControlActivity = (source, activity) => {
   }
 }
 
+const loadMovie = (m) => {
+  // load movie
+  videoSource.setAttribute("src", "/movies/" + m)
+  videoSource.setAttribute("type", "video/mp4")
+  videoObject.load()
+  movie = m
+}
+
+
 // video starts playing
 videoObject.addEventListener("play", event => {
-  const movieUrl = videoSource.getAttribute("src").replace(/^\/movies\//, "")
-  ws.send(JSON.stringify({ reason: "movieplaying", movie: movieUrl, roomId: monitorId }))
+  ws.send(JSON.stringify({ reason: "movieplaying", movie: getCurrentMovie(), roomId: monitorId }))
 })
 
 // video stopped
 videoObject.addEventListener("pause", event => {
-  const movieUrl = videoSource.getAttribute("src").replace(/^\/movies\//, "")
-  ws.send(JSON.stringify({ reason: "moviestopped", movie: movieUrl, roomId: monitorId }))
+  ws.send(JSON.stringify({ reason: "moviestopped", movie: getCurrentMovie(), roomId: monitorId }))
+})
+
+// video loaded
+videoObject.addEventListener("loadedmetadata", event => {
+  const m = getCurrentMovie()
+
+  const cur = window.localStorage.getItem(m)
+  if (cur !== null) {
+    videoObject.currentTime = (videoObject.duration - cur) < 0.2 ? (cur - 0.1) : cur
+  }
+  console.log("loadedmetadata", m, videoObject.currentTime, cur)
+
+  // inform room
+  ws.send(JSON.stringify({ reason: "movieloaded", movie: m, roomId: monitorId, currenttime: videoObject.currentTime }))
 })
 
 document.addEventListener("evt-loadmovie", event => {
@@ -66,18 +87,16 @@ document.addEventListener("evt-loadmovie", event => {
   }
 
   // load movie
-  videoSource.setAttribute("src", "/movies/" + event.detail.movie)
-  videoSource.setAttribute("type", "video/mp4")
-  videoObject.load()
-  movie = event.detail.movie
-  if (window.localStorage.getItem(event.detail.movie) !== null) {
-    videoObject.currentTime = window.localStorage.getItem(event.detail.movie)
-  }
-  // inform room
-  ws.send(JSON.stringify({ reason: "movieloaded", movie: event.detail.movie, roomId: monitorId, currenttime: videoObject.currentTime }))
+  loadMovie(event.detail.movie)
 
   // show activity
   updateRemoteControlActivity(event.detail.source, "Loaded movie")
+})
+
+document.addEventListener("evt-movieended", event => {
+  window.localStorage.setItem(movie, videoObject.currentTime)
+  loadMovie(event.detail.nextMovie)
+  ws.send(JSON.stringify({ reason: "loadmovie", movie: event.detail.nextMovie, roomId: monitorId, currenttime: videoObject.currentTime }))
 })
 
 /*
@@ -97,6 +116,7 @@ document.addEventListener("evt-playstop", event => {
     })
   } else {
     videoObject.pause()
+    window.localStorage.setItem(movie, videoObject.currentTime)
     updateRemoteControlActivity(event.detail.source, "Stopped movie")
   }
 })

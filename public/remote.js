@@ -7,7 +7,6 @@ const remoteForward = remote.querySelector(".forward")
 const remoteMovie = remote.querySelector(".movie")
 const moviesUl = document.querySelector("#movies-list .movies")
 const dirsUl = document.querySelector("#movies-list .dirs")
-let selectedMovie = null
 const rooms = new Map()
 let hasMonitor = false
 
@@ -24,12 +23,12 @@ const remoteEnabled = (status) => {
 }
 
 const updateRemoteStatus = (meta) => {
-  remoteMovie.innerText = meta.movie
+  remoteMovie.innerText = meta.movie.replace(/^.*?([^/]*)\.[^.]*$/, "$1")
   if (meta.status === "moviestopped") {
-    remotePlayStopText.innerText = "\u25ba"
+    remotePlayStopText.innerText = "play_circle_filled"
   }
   else if (meta.status === "movieplaying") {
-    remotePlayStopText.innerText = "\u2759\u2759"
+    remotePlayStopText.innerText = "pause"
   }
 }
 
@@ -134,7 +133,8 @@ document.addEventListener("evt-joined", event => {
 // monitor loaded movie
 document.addEventListener("evt-movieloaded", event => {
   remoteEnabled(true)
-  remoteMovie.innerHTML = event.detail.movie + "<span class=\"currenttime\">" + timestamp2human(event.detail.currenttime) + "</span>"
+  remoteMovie.innerHTML = event.detail.movie.replace(/^.*?([^/]*)\.[^.]*$/, "$1")
+    + "<span class=\"currenttime\">" + timestamp2human(event.detail.currenttime) + "</span>"
 })
 
 // monitor can not  be controlled
@@ -153,7 +153,7 @@ document.addEventListener("evt-left", event => {
   if (event.detail.type === "monitor") {
     const monitor = event.detail.id
     remoteMovie.innerText = ""
-    remotePlayStopText.innerText = "\u25ba"
+    remotePlayStopText.innerText = "play_circle_filled"
     remoteEnabled(false)
   }
 })
@@ -189,12 +189,12 @@ document.addEventListener("evt-changedclientid", event => {
 
 // monitor is playing movie
 document.addEventListener("evt-movieplaying", event => {
-  remotePlayStopText.innerText = "\u2759\u2759"
+  remotePlayStopText.innerText = "pause"
 })
 
 // monitor has stopped movie
 document.addEventListener("evt-moviestopped", event => {
-  remotePlayStopText.innerText = "\u25ba"
+  remotePlayStopText.innerText = "play_circle_filled"
 })
 
 // room selection change
@@ -238,11 +238,7 @@ moviesUl.addEventListener("click", event => {
   }
   const movieToLoad = elm && elm.getAttribute("href") && elm.getAttribute("href").replace(/^\/[^/]*\//, "")
   if (movieToLoad) {
-    if (selectedMovie !== null) {
-      moviesUl.children[selectedMovie].querySelector("a").style.backgroundColor = ""
-    }
     ws.send(JSON.stringify({ reason: "loadmovie", movie: movieToLoad, roomId: monitorId }))
-    selectedMovie = [...moviesUl.children].indexOf(elm.parentElement)
     elm.classList.add("flash")
     setTimeout(() => {
       elm.classList.remove("flash")

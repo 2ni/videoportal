@@ -3,6 +3,10 @@ const overlay = document.querySelector("#overlay")
 const overlayButton = overlay.querySelector("button")
 let nextMovieElm = null
 
+const getCurrentMovie = () => {
+  return videoObject.querySelector("source").getAttribute("src").replace(/^\/movies\//, "")
+}
+
 if (typeof startTime !== "undefined" && startTime) {
   videoObject.currentTime = startTime
 } else if (typeof movie !== "undefined" && window.localStorage.getItem(movie) !== null) {
@@ -41,7 +45,7 @@ videoObject.addEventListener("click", event => {
 videoObject.addEventListener("timeupdate", event => {
   const timeBeforeEnd = 60
   if (!nextMovieElm && videoObject.currentTime > (videoObject.duration - timeBeforeEnd)) {
-    fetch("/api/movie/next/" + window.location.pathname.replace(/^\/play\//, ""), { method: "GET", headers: {} }).then(r => {
+    fetch("/api/movie/next/" + getCurrentMovie(), { method: "GET", headers: {} }).then(r => {
       return r.json()
     }).then(response => {
       if (response.nextMovie) {
@@ -64,16 +68,25 @@ videoObject.addEventListener("timeupdate", event => {
  * it'll leave fullscreen when loading
  */
 videoObject.addEventListener("ended", event => {
-  if ((window.fullScreen) || (window.innerWidth == screen.width && window.innerHeight == screen.height)) {
-    fetch("/api/movie/next/" + window.location.pathname.replace(/^\/play\//, ""), { method: "GET", headers: {} }).then(r => {
-      return r.json()
-    }).then(response => {
-      if (response.nextMovie) {
-        window.location.replace("/play" + response.nextMovie)
-      }
-    })
-  }
+  const isFullScreen = ((window.fullScreen) || (window.innerWidth == screen.width && window.innerHeight == screen.height))
+  fetch("/api/movie/next/" + getCurrentMovie(), { method: "GET", headers: {} }).then(r => {
+    return r.json()
+  }).then(response => {
+    if (response.nextMovie) {
+      document.dispatchEvent(new CustomEvent("evt-movieended", { detail: { nextMovie: response.nextMovie, isFullScreen: isFullScreen }}))
+    }
+  })
 })
+
+// normal play mode
+if (typeof monitorId === "undefined") {
+  document.addEventListener("evt-movieended", event => {
+    if (event.detail.isFullScreen) {
+      console.log("loading next movie", event.detail.nextMovie)
+      window.location = "/play" + event.detail.nextMovie
+    }
+  })
+}
 
 // forward, rewind or set new time
 videoObject.addEventListener("seeked", event => {

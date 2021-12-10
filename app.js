@@ -113,6 +113,7 @@ app.get("/play/:movie([^$]+)", (req, res) => {
   res.set("Content-Security-Policy", "script-src 'self' 'nonce-" + nonce + "'")
   res.render("play", {
     page: "play",
+    title: path.basename(req.params.movie),
     nonce: nonce,
     jsInit: {
       movie: req.params.movie,
@@ -126,6 +127,7 @@ app.get("/monitor/:monitorId?", (req, res) => {
   const nonce = crypto.randomBytes(16).toString("base64")
   res.render("monitor", {
     page: "monitor",
+    title: req.params.monitorId,
     nonce: nonce,
     useWebsockets: true,
     jsInit: {
@@ -192,7 +194,7 @@ app.get([ "/api/movies/:path(*)", "/api/movies" ], async (req, res) => {
  * get next movie
  * eg http -b :3001/api/movie/next/sacha/SachaS01E01.mp4
  */
-app.get("/api/movie/next:path(*)", async (req, res) => {
+app.get("/api/movie/next/:path(*)", async (req, res) => {
   const absPath = path.join(config.moviesBasePath, req.params.path || "")
   const movieDir = path.dirname(absPath)
   const movieFn = path.basename(absPath)
@@ -221,6 +223,7 @@ app.get("*", async (req, res) => {
   try {
     const dirData = await walk(moviesDir, curPath)
     res.render("home", {
+      title: curPath,
       movies: dirData.movies,
       dirs: dirData.dirs,
       scripts: ["home.js"]

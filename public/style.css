@@ -25,6 +25,10 @@ body.play #video-holder video {
   max-width: 100%;
 }
 
+.icon {
+  font-family: "Material Icons";
+}
+
 #movies-list {
   margin: 1rem;
   margin-top: .2rem;
@@ -211,23 +215,6 @@ a:hover {
 
 #remoteControl button span {
   font-size: 6rem;
-  position: relative;
-}
-
-#remoteControl .forward span:nth-child(2) {
-  left: -2.5rem;
-}
-
-#remoteControl .forward span:first-child {
-  left: .5rem;
-}
-
-#remoteControl .rewind span:nth-child(2) {
-  left: -3rem;
-}
-
-#remoteControl .rewind span:first-child {
-  left: -.5rem;
 }
 
 #remoteControl button {
@@ -330,22 +317,6 @@ a:hover {
 
   #remoteControl button span {
     font-size: 3rem;
-  }
-
-  #remoteControl .forward span:nth-child(2) {
-    left: -.5rem;
-  }
-
-  #remoteControl .forward span:first-child {
-    left: 1rem;
-  }
-
-  #remoteControl .rewind span:nth-child(2) {
-    left: -1rem;
-  }
-
-  #remoteControl .rewind span:first-child {
-    left: .5rem;
   }
 
   #movies-list ul.movies li {
