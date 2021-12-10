@@ -4,6 +4,8 @@ const remotePlayStop = remote.querySelector(".play-stop")
 const remotePlayStopText = remotePlayStop.querySelector("span")
 const remoteRewind = remote.querySelector(".rewind")
 const remoteForward = remote.querySelector(".forward")
+const remotePrevious = remote.querySelector(".previous")
+const remoteNext = remote.querySelector(".next")
 const remoteMovie = remote.querySelector(".movie")
 const moviesUl = document.querySelector("#movies-list .movies")
 const dirsUl = document.querySelector("#movies-list .dirs")
@@ -16,10 +18,39 @@ const templateUrlBox = document.getElementById("templateUrlBox").innerHTML
 // start websocket communication
 handleWebsocket(document.querySelector(".client-control"))
 
-const remoteEnabled = (status) => {
-  remotePlayStop.disabled = status ? false : true
-  remoteRewind.disabled = status ? false : true
-  remoteForward.disabled = status ? false : true
+const remoteEnabled = (newmovie) => {
+  if (newmovie) {
+    remotePlayStop.disabled = false
+    remoteRewind.disabled = false
+    remoteForward.disabled = false
+    fetch("/api/movie/next/" + newmovie, { method: "GET", headers: {} }).then(r => {
+      return r.json()
+    }).then(response => {
+      if (response.nextMovie) {
+        remoteNext.dataset.movie = response.nextMovie
+        remoteNext.disabled = false
+      } else {
+        remoteNext.removeAttribute("data-movie")
+        remoteNext.disabled = true
+      }
+      if (response.previousMovie) {
+        remotePrevious.dataset.movie = response.previousMovie
+        remotePrevious.disabled = false
+      } else {
+        remotePrevious.removeAttribute("data-movie")
+        remotePrevious.disabled = true
+      }
+    })
+  } else {
+    remotePlayStop.disabled = true
+    remoteRewind.disabled = true
+    remoteForward.disabled = true
+    remoteNext.disabled = true
+    remotePrevious.disabled = true
+    remoteNext.removeAttribute("data-movie")
+    remotePrevious.removeAttribute("data-movie")
+  }
+
 }
 
 const updateRemoteStatus = (meta) => {
@@ -132,19 +163,19 @@ document.addEventListener("evt-joined", event => {
 
 // monitor loaded movie
 document.addEventListener("evt-movieloaded", event => {
-  remoteEnabled(true)
+  remoteEnabled(event.detail.movie)
   remoteMovie.innerHTML = event.detail.movie.replace(/^.*?([^/]*)\.[^.]*$/, "$1")
     + "<span class=\"currenttime\">" + timestamp2human(event.detail.currenttime) + "</span>"
 })
 
 // monitor can not  be controlled
 document.addEventListener("evt-movieplayingerror", event => {
-  remoteEnabled(false)
+  remoteEnabled(null)
   remote.querySelector(".status").innerText = event.detail.msg
 })
 
 document.addEventListener("evt-remoteactivated", event => {
-  remoteEnabled(true)
+  remoteEnabled(event.detail.meta.movie)
   remote.querySelector(".status").innerText = ""
 })
 
@@ -154,7 +185,7 @@ document.addEventListener("evt-left", event => {
     const monitor = event.detail.id
     remoteMovie.innerText = ""
     remotePlayStopText.innerText = "play_circle_filled"
-    remoteEnabled(false)
+    remoteEnabled(null)
   }
 })
 
@@ -163,7 +194,7 @@ document.addEventListener("evt-changedclientid", event => {
   if (event.detail.type === "monitor") {
     if (event.detail.meta) {
       updateRemoteStatus(event.detail.meta)
-      remoteEnabled(true)
+      remoteEnabled(event.detail.meta.movie)
     }
 
     const newClientId = event.detail.id
@@ -209,7 +240,7 @@ roomList.addEventListener("change", event => {
   monitorId = roomId
 
   if (roomId === "---") {
-    remoteEnabled(false)
+    remoteEnabled(null)
     remoteMovie.innerText = ""
   }
 })
@@ -220,7 +251,14 @@ remote.addEventListener("click", event => {
   let limit = 3
   while (elm.tagName !== "BUTTON" && --limit > 0) elm = elm.parentElement
   if (elm.tagName === "BUTTON") {
-    ws.send(JSON.stringify({ reason: elm.classList[0].replace("-", ""), roomId: monitorId }))
+    const classList = [...elm.classList]
+    if (classList.includes("next") || classList.includes("previous")) {
+      if (elm.dataset.movie) {
+        ws.send(JSON.stringify({ reason: "loadmovie", movie: elm.dataset.movie, roomId: monitorId }))
+      }
+    } else {
+      ws.send(JSON.stringify({ reason: elm.classList[0].replace("-", ""), roomId: monitorId }))
+    }
   }
 })
 

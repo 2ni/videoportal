@@ -153,8 +153,10 @@ wss.on("connection", (ws, req) => {
       monitorsTable.set(ws.id, ws)
 
       // unset meta if monitor joins
-      if (roomsMeta.get(ws.id)) {
-        roomsMeta.set(ws.id, { status: "moviestopped", movie: "", hasmonitor: true })
+      let meta = roomsMeta.get(ws.id)
+      if (meta) {
+        meta = { ...meta, ...{ status: "moviestopped", hasmonitor: true }}
+        roomsMeta.set(ws.id, meta)
       }
 
       // send all remotecontrols listening to new room
@@ -303,7 +305,8 @@ wss.on("connection", (ws, req) => {
       case "monitor":
         room.delete(ws.id)
         console.log(timestamp(), "remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (room.size || 0) + ")\"")
-        const meta = { status: "moviestopped", movie: "", hasmonitor: false }
+        let meta = roomsMeta.get(ws.id)
+        meta.hasmonitor = false
         roomsMeta.set(ws.id, meta) // hasmonitor: false assumes we only have 1 monitor per room
         broadcast("room", ws.id, { reason: "left", id: ws.id, type: ws.type })
         // keep room as long as participants

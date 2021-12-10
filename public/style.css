@@ -214,22 +214,22 @@ a:hover {
 }
 
 #remoteControl button span {
-  font-size: 6rem;
+  font-size: 5rem;
 }
 
 #remoteControl button {
-  font-size: 2rem;
-  width: 10rem;
-  height: 7rem;
   color: #0275d8;
   border: 1px solid #0275d8;
   border-radius: 1rem;
   margin: 1rem;
   box-shadow: 0 .6rem 0 rgba(2, 117, 218, 1), 0 .6rem 1.6rem rgba(0, 0, 0, .7);
   transition: all .1s ease;
+  width: 100%;
+  max-width: 10rem;
 }
 
 #remoteControl button:hover {
+  cursor: pointer;
 }
 
 #remoteControl button:disabled {
@@ -310,8 +310,6 @@ a:hover {
 @media only screen and (max-width: 590px) {
 
   #remoteControl button {
-    height: 3.5rem;
-    width: 7rem;
     margin: .5rem;
   }
 

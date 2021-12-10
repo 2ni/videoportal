@@ -16,7 +16,7 @@ const showErrorOverlay = (error) => {
 
 const activateRemote = event => {
   overlay.style.display = "none"
-  ws.send(JSON.stringify({ reason: "remoteactivated", roomId: monitorId }))
+  ws.send(JSON.stringify({ reason: "remoteactivated", roomId: monitorId, meta: { movie: getCurrentMovie() } }))
   overlayButton.removeEventListener("click", activateRemote)
 }
 
@@ -74,7 +74,6 @@ videoObject.addEventListener("loadedmetadata", event => {
   if (cur !== null) {
     videoObject.currentTime = (videoObject.duration - cur) < 0.2 ? (cur - 0.1) : cur
   }
-  console.log("loadedmetadata", m, videoObject.currentTime, cur)
 
   // inform room
   ws.send(JSON.stringify({ reason: "movieloaded", movie: m, roomId: monitorId, currenttime: videoObject.currentTime }))
@@ -170,14 +169,19 @@ document.addEventListener("evt-participantlist", event => {
     }
   })
 
-  // send movie if loaded (eg happens if wss restarts
-  if (videoSource.getAttribute("src")) {
+  // send movieloaded if meta has no information but monitor has movie loaded
+  // (happens if wss restarts)
+  if (!event.detail.meta.movie && videoSource.getAttribute("src")) {
     ws.send(JSON.stringify({
       reason: "movieloaded",
       movie: videoSource.getAttribute("src").replace(/^\/movies\//, ""),
       roomId: monitorId,
       currenttime: videoObject.currentTime
     }))
+  }
+  // load movie given from participantlist, eg if monitor joins / reloads and movie has already been set in room
+  else if (event.detail.meta.movie) {
+    loadMovie(event.detail.meta.movie)
   }
 })
 

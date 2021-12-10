@@ -191,7 +191,7 @@ app.get([ "/api/movies/:path(*)", "/api/movies" ], async (req, res) => {
 })
 
 /*
- * get next movie
+ * get previous/next movie
  * eg http -b :3001/api/movie/next/sacha/SachaS01E01.mp4
  */
 app.get("/api/movie/next/:path(*)", async (req, res) => {
@@ -199,22 +199,25 @@ app.get("/api/movie/next/:path(*)", async (req, res) => {
   const movieDir = path.dirname(absPath)
   const movieFn = path.basename(absPath)
   const files = await fsp.readdir(movieDir, { withFileTypes: true })
-  let next = false
   let nextMovie = null
+  let previousMovie = null
+  let i = -1
+  let validFns = []
   for (const file of files) {
     if (!file.isFile()) continue
     const f = await filetype.fromFile(path.join(movieDir, file.name))
-    if (f && f.mime === "video/mp4") {
-      if (next) {
-        nextMovie = path.join(path.dirname(req.params.path), file.name)
-        break
-      } else if (file.name === movieFn) {
-        next = true
-      }
+    if (f && f.mime === "video/mp4") validFns.push(file.name)
+  }
+  for (const fn of validFns) {
+    i++
+    if (fn === movieFn) {
+      nextMovie = (i + 1) < validFns.length ? path.join(path.dirname(req.params.path), validFns[i+1]) : null
+      previousMovie = (i -1) >= 0 ? path.join(path.dirname(req.params.path), validFns[i-1]) : null
+      break
     }
   }
 
-  return res.status(200).send({ nextMovie: nextMovie })
+  return res.status(200).send({ nextMovie: nextMovie, previousMovie: previousMovie })
 })
 
 app.get("*", async (req, res) => {
