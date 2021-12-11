@@ -3,10 +3,14 @@ let trial = 0
 
 const _startWebsocket = (id, clientType) => {
   if (id) {
+    let dbg = new URLSearchParams(window.location.search).get("dbg")
+    dbg = (dbg && dbg.match(/^(true|false)$/)) ? dbg : null
+    console.log("dbg", dbg)
     const wscmd = "ws"
       + (window.location.protocol === "https" ? "s" : "")
       + "://" + window.location.hostname + (window.location.port ? ":" : "") + window.location.port
       + "?id=" + id + "&clientType=" + clientType + "&roomId=" + monitorId
+      + (dbg !== null ? "&dbg=" + dbg: "")
     console.log("opening websocket", wscmd)
 
     ws = new WebSocket(wscmd)

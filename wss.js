@@ -1,3 +1,4 @@
+import { env, config } from "./config/app.js"
 import WebSocket, { WebSocketServer } from "ws"
 import url from "url"
 // import { v4 as uuid } from "uuid"
@@ -12,36 +13,56 @@ const monitorsTable = new Map()       // id: wss
 const remoteControlsTable = new Map() // id: wss
 const roomsTable = new Map()          // id(monitorId) => id:{id, type}, id:{id, type}
 const roomsMeta = new Map()           // id(monitorId) => {movie:"", status:"", hasmonitor: false}
+let dbgMode = true
+
+const  DBG = (...args) => {
+  let noTs = null
+  let noNl = null
+  let i = 0
+  for (const arg of args) {
+    if (typeof arg === "object" && (arg.noTs || arg.noNl)) {
+      noTs = arg.noTs
+      noNl = arg.noNl
+      args.splice(i, 1)
+    }
+    i++
+  }
+  if (dbgMode) {
+    const ts = noTs ? "" : timestamp()
+    if (noNl) { process.stdout.write(ts + (noTs ? "" : " ") + args[0]) }
+    else console.log(ts, ...args)
+  }
+}
 
 const debugTables = (context, client) => {
-  console.log("")
-  console.log(timestamp(), "*********** TABLES (" + client.type + ":" + client.id + " " + context + ") ***********")
-  console.log(timestamp(), "monitors", Array.from(monitorsTable.keys()))
-  console.log(timestamp(), "remotecontrols", Array.from(remoteControlsTable.keys()))
-  console.log(timestamp(), "rooms")
+  DBG("", { noTs: true })
+  DBG("*********** TABLES (" + client.type + ":" + client.id + " " + context + ") ***********")
+  DBG("monitors", Array.from(monitorsTable.keys()))
+  DBG("remotecontrols", Array.from(remoteControlsTable.keys()))
+  DBG("rooms")
   roomsTable.forEach((room,key) => {
-    process.stdout.write(timestamp() + "  " + key + ": ")
+    DBG("  " + key + ": ", { noNl: true })
     const participants = []
     room.forEach((p, k) => {
       participants.push(k + "/" + p.type)
     })
-    console.log(participants)
+    DBG(participants, { noTs: true })
   })
-  console.log(timestamp(), "roomsmeta")
+  DBG("roomsmeta")
   roomsMeta.forEach((meta,key) => {
-    process.stdout.write(timestamp() + "  " + key + ": ")
-    console.log(meta)
+    DBG("  " + key + ": ", { noNl: true })
+    DBG(meta, {noTs: true })
   })
-  console.log(timestamp(), "******************************\n")
+  DBG("******************************\n")
 }
 
 
 wss.on("exit", () => {
   /*
-  console.log(timestamp(), "remove all clients")
+  DBG("remove all clients")
   clientsTable.forEach(client => {
     client.send(JSON.stringify({ clients: { removeall: 1 }}))
-    console.log(client.id)
+    DBG(client.id)
   })
   */
 })
@@ -66,7 +87,7 @@ wss.on("connection", (ws, req) => {
     }
     if (table) {
       data = typeof(data) !== "string" ? JSON.stringify(data) : data
-      console.log(timestamp(), "broadcast to " + (roomId ? "" : "\"") + whichType + ( roomId ? " \"" + roomId : "") + "\" from " + ws.id + ":  " + data)
+      DBG("broadcast to " + (roomId ? "" : "\"") + whichType + ( roomId ? " \"" + roomId : "") + "\" from " + ws.id + ":  " + data)
       table.forEach(t => {
         let to = t
         if (whichType === "room") {
@@ -75,10 +96,10 @@ wss.on("connection", (ws, req) => {
           else to = null
         }
         if (!excludeIds.includes(to.id) && to.id !== ws.id && to.readyState === WebSocket.OPEN) {
-          console.log(timestamp(), "  > " + to.id)
+          DBG("  > " + to.id)
           to.send(data)
         } else {
-          console.log(timestamp(), "  > " + to.id + " (skipped)")
+          DBG("  > " + to.id + " (skipped)")
         }
       })
     }
@@ -87,7 +108,7 @@ wss.on("connection", (ws, req) => {
   const sendRoomList = (roomId) => {
     if (!roomId) return
 
-    console.log(timestamp(), "send room list \"" + roomId + "\" to \"" + ws.id + "\"")
+    DBG("send room list \"" + roomId + "\" to \"" + ws.id + "\"")
     const participants = []
     const room = roomsTable.get(roomId)
     if (room) {
@@ -107,31 +128,34 @@ wss.on("connection", (ws, req) => {
   const clientType = parameters.query.clientType
   const roomId = parameters.query.roomId
   const clientId = parameters.query.id
+  if (parameters.query.dbg === "true") dbgMode = true
+  else if (parameters.query.dbg === "false") dbgMode = false
+  else dbgMode = env === "localhost"
 
   if (clientType === "monitor" && !roomId) {
-    console.log(timestamp(), "invalid monitor, no roomId")
+    DBG("invalid monitor, no roomId")
     return ws.close(4001, "invalid monitor")
   }
 
   if (clientType === "remotecontrol" && !clientId) {
-    console.log(timestamp(), "invalid remotecontrol")
+    DBG("invalid remotecontrol")
     return ws.close(4001, "invalid remotecontrol")
   }
 
   if ((clientType === "remotecontrol" && remoteControlsTable.get(clientId))
     || (clientType === "monitor" && monitorsTable.get(clientId))) {
-      console.log(timestamp(), "clientid taken: " + clientType + ":" + clientId)
+      DBG("clientid taken: " + clientType + ":" + clientId)
       return ws.close(4001, "clientid taken")
   }
 
   if (!["remotecontrol", "monitor"].includes(clientType)) {
-    console.log(timestamp(), "invalid client type")
+    DBG("invalid client type")
     return ws.close(4001, "invalid client type")
   }
 
   ws.id = clientId
   ws.type = clientType
-  console.log(timestamp(), ws.type + " \"" + ws.id + "\" connected ")
+  DBG(ws.type + " \"" + ws.id + "\" connected ")
 
   // new client connected
   switch (ws.type) {
@@ -179,7 +203,7 @@ wss.on("connection", (ws, req) => {
     room = roomsTable.get(roomId)
     if (!room) {
       reason = "roomadded"
-      console.log(timestamp(), "create room \"" + roomId + "\"")
+      DBG("create room \"" + roomId + "\"")
       roomsTable.set(roomId, new Map())
       const meta = { status: "moviestopped", movie: "", hasmonitor: ws.type === "monitor" }
       roomsMeta.set(roomId, meta)
@@ -188,7 +212,7 @@ wss.on("connection", (ws, req) => {
     room = roomsTable.get(roomId)
     // add client to room
     room.set(ws.id, { id: ws.id, type: ws.type })
-    console.log(timestamp(), "add \"" + ws.id + "\" to room \"" + roomId + "(" + room.size + ")\"")
+    DBG("add \"" + ws.id + "\" to room \"" + roomId + "(" + room.size + ")\"")
 
     // broadcast all room clients about new client
     broadcast("room", roomId, { reason: "joined", id: ws.id, type: ws.type })
@@ -216,7 +240,7 @@ wss.on("connection", (ws, req) => {
       let roomId
       let dataToSend
       data = JSON.parse(data)
-      console.log(timestamp(), "got data from " + ws.id + ": " + JSON.stringify(data))
+      DBG("got data from " + ws.id + ": " + JSON.stringify(data))
       // participant switched room
       switch(data.reason) {
         case "changedroom":
@@ -243,7 +267,7 @@ wss.on("connection", (ws, req) => {
 
             // add participants from potential new name room to old room before renaming it
             const existinstingParticipants = roomsTable.get(data.id)
-            console.log("existinstingParticipants", existinstingParticipants)
+            DBG("existinstingParticipants: " + existinstingParticipants, { noTs: true })
             if (existinstingParticipants) {
               existinstingParticipants.forEach((existinstingParticipant, k) => {
                 if (!room.get(k)) {
@@ -260,7 +284,7 @@ wss.on("connection", (ws, req) => {
               monitorsTable.delete(ws.id)
               roomsMeta.set(data.id, roomsMeta.get(ws.id))
               roomsMeta.delete(ws.id)
-              console.log(timestamp(), "renamed room " + ws.id + " => " + data.id)
+              DBG("renamed room " + ws.id + " => " + data.id)
 
               broadcast("remotecontrol", null, { reason: "changedclientid", id: data.id, type: ws.type, sourceid: ws.id, x: 2 })
               break
@@ -294,7 +318,7 @@ wss.on("connection", (ws, req) => {
           break
       }
     } catch (e) {
-      console.log(timestamp(), "incoming parsing error", e)
+      DBG("incoming parsing error", e)
     }
 
     debugTables("message", ws)
@@ -304,7 +328,7 @@ wss.on("connection", (ws, req) => {
     switch (ws.type) {
       case "monitor":
         room.delete(ws.id)
-        console.log(timestamp(), "remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (room.size || 0) + ")\"")
+        DBG("remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (room.size || 0) + ")\"")
         let meta = roomsMeta.get(ws.id)
         meta.hasmonitor = false
         roomsMeta.set(ws.id, meta) // hasmonitor: false assumes we only have 1 monitor per room
@@ -313,7 +337,7 @@ wss.on("connection", (ws, req) => {
         let reason = "roomchanged"
         if (!room.size) {
           reason = "roomdeleted"
-          console.log(timestamp(), "remove room \"" + ws.id + "\"")
+          DBG("remove room \"" + ws.id + "\"")
           roomsTable.delete(ws.id)
           roomsMeta.delete(ws.id)
         }
@@ -327,10 +351,10 @@ wss.on("connection", (ws, req) => {
         roomsTable.forEach( (r, id) => {
           if (r.get(ws.id)) {
             r.delete(ws.id)
-            console.log(timestamp(), "remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (r.size || 0) + ")\"")
+            DBG("remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (r.size || 0) + ")\"")
             broadcast("room", id, { reason: "left", id: ws.id, type: ws.type })
             if (!r.size) {
-              console.log(timestamp(), "remove room \"" + id + "\"")
+              DBG("remove room \"" + id + "\"")
               roomsTable.delete(id)
               roomsMeta.delete(id)
             }
