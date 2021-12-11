@@ -108,6 +108,11 @@ a:hover {
   position: relative;
 }
 
+#movies-list ul.movies li.last-played {
+  background: #ffcb29;
+  width: 100%;
+}
+
 #movies-list ul.movies li a {
   color: #0275d8;
   text-decoration: none;

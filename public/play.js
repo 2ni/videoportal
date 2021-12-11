@@ -42,6 +42,10 @@ videoObject.addEventListener("click", event => {
   videoObject.blur()
 })
 
+videoObject.addEventListener("play", event => {
+  window.localStorage.setItem("lastPlayedMovie", getCurrentMovie())
+})
+
 videoObject.addEventListener("timeupdate", event => {
   const timeBeforeEnd = 60
   if (!nextMovieElm && videoObject.currentTime > (videoObject.duration - timeBeforeEnd)) {

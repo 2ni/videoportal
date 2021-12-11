@@ -20,7 +20,7 @@ handleWebsocket(document.querySelector(".client-control"))
 
 const remoteEnabled = (newmovie, currenttime) => {
   remoteMovie.innerHTML = newmovie ? ((hasMonitor ? "" : "\u23FE ")
-  + newmovie.replace(/^.*?([^/]*)\.[^.]*$/, "$1")
+  + prettifyMovie(newmovie)
   + (currenttime ? "<span class=\"currenttime\">" + timestamp2human(currenttime) + "</span>" : "")) : ""
 
   if (newmovie && hasMonitor) {

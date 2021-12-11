@@ -1,4 +1,17 @@
 /*
+ * show last played movie
+ */
+if ((lastPlayedMovie = window.localStorage.getItem("lastPlayedMovie")) !== null) {
+  const templateVideoBox = document.getElementById("templateVideoBox").innerHTML
+  const moviesUl = document.querySelector("#movies-list .movies")
+  moviesUl.insertAdjacentHTML("afterbegin", templateVideoBox
+    .replace(/{{name}}/g, prettifyMovie(lastPlayedMovie))
+    .replace(/{{url}}/g, lastPlayedMovie)
+  )
+  moviesUl.firstElementChild.classList.add("last-played")
+}
+
+/*
  * show video, duration and time seen
  */
 const videoObjects = document.querySelectorAll("#movies-list ul.movies li a video")
@@ -27,3 +40,4 @@ videoObjects.forEach(videoObject => {
     }
   })
 })
+

@@ -105,3 +105,11 @@ const handleWebsocket = (clientControlElm) => {
     }
   })
 }
+
+const capitalize = (str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+const prettifyMovie = (fn) => {
+  return capitalize(fn.replace(/^.*?([^/]*)\.[^.]*$/, "$1"))
+}
