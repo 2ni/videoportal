@@ -15,13 +15,15 @@ const capitalize = (str) => {
 
 const getBreadcrumbs = (req, res, next) => {
   const urls = req.originalUrl.split('/')
-  if (urls[1] == "") {
-    urls.shift()
-  }
+  if (urls[1] == "") urls.shift()
+  const isPlay = urls[1] === "play"
+  if (isPlay) urls.splice(1,1)
+  const l = urls.length
+
   res.locals.breadcrumbs = urls.map((url, i) => {
     return {
       name: url === "" ? "Home" : capitalize(url),
-      url: `/${urls.slice(1, i + 1).join("/")}`
+      url: `${isPlay && i === l -1 ? "/play" : ""}/${(urls).slice(1, i + 1).join("/")}`
     }
   })
   next()

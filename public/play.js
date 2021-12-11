@@ -55,7 +55,7 @@ videoObject.addEventListener("timeupdate", event => {
       if (response.nextMovie) {
         nextMovieElm = document.createElement("div")
         let movieName = response.nextMovie.replace(/^.*?([^/]*)$/, "$1").replace(/\.[^.]*$/, "")
-        nextMovieElm.innerHTML = "<a href=\"/play" + response.nextMovie + "\">" + movieName + "</a>"
+        nextMovieElm.innerHTML = "<a href=\"/play/" + response.nextMovie + "\">" + movieName + "</a>"
         nextMovieElm.style.cssText = "position: absolute; top: 50%; background: white; right: 0; padding: .1rem; opacity: .2"
         videoObject.parentNode.insertBefore(nextMovieElm, videoObject.nextSibling)
       }

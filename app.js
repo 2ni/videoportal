@@ -24,7 +24,7 @@ const app = express()
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use("/", express.static("public"))
-app.use(getBreadcrumbs)
+// don't use on all routes app.use(getBreadcrumbs)
 app.engine(".hbs", engine({ extname: ".hbs", helpers: handlebarsHelpers, partialsDir: "views/partials" }))
 app.set("view engine", ".hbs")
 app.set("views", "./views")
@@ -108,7 +108,7 @@ app.get("/movies/:movie([^$]+)", (req, res) => {
   }
 })
 
-app.get("/play/:movie([^$]+)", (req, res) => {
+app.get("/play/:movie([^$]+)", getBreadcrumbs, (req, res) => {
   const nonce = crypto.randomBytes(16).toString("base64")
   res.set("Content-Security-Policy", "script-src 'self' 'nonce-" + nonce + "'")
   res.render("play", {
@@ -220,12 +220,12 @@ app.get("/api/movie/next/:path(*)", async (req, res) => {
   return res.status(200).send({ nextMovie: nextMovie, previousMovie: previousMovie })
 })
 
-app.get("*", async (req, res) => {
+app.get("*", getBreadcrumbs, async (req, res) => {
   const curPath = req.url.replace(/^\//, "")
   const moviesDir = path.join(config.moviesBasePath, curPath)
   try {
     const dirData = await walk(moviesDir, curPath)
-    res.render("home", {
+    return res.render("home", {
       title: curPath,
       movies: dirData.movies,
       dirs: dirData.dirs,

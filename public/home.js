@@ -1,7 +1,7 @@
 /*
- * show last played movie
+ * show last played movie on home page
  */
-if ((lastPlayedMovie = window.localStorage.getItem("lastPlayedMovie")) !== null) {
+if (window.location.pathname === "/" && (lastPlayedMovie = window.localStorage.getItem("lastPlayedMovie")) !== null) {
   const templateVideoBox = document.getElementById("templateVideoBox").innerHTML
   const moviesUl = document.querySelector("#movies-list .movies")
   moviesUl.insertAdjacentHTML("afterbegin", templateVideoBox
