@@ -113,3 +113,43 @@ const capitalize = (str) => {
 const prettifyMovie = (fn) => {
   return capitalize(fn.replace(/^.*?([^/]*)\.[^.]*$/, "$1"))
 }
+
+/*
+ *  simple fifo list
+ *  new Fifo("somename").set("foo", "bar)
+ *  new Fifo("somename").get("foo")
+ */
+
+const Fifo = class {
+  constructor(name) {
+    this.name = name
+    try {
+      this.queue = JSON.parse(window.localStorage.getItem(name) || "[]")
+    } catch (e) {
+      this.queue = []
+    }
+  }
+
+  /*
+   * no key given -> returns whole list
+   */
+  get (key) {
+    if (!key) return this.queue
+
+    return (this.queue.find(o => Object.keys(o)[0] === key) || {})[key] || 0
+  }
+
+  set (key, value) {
+    let index = this.queue.findIndex(o => Object.keys(o)[0] === key)
+    if (index !== -1) {
+      this.queue[index][key] = value
+      let current = this.queue.splice(index, 1)
+      console.log("current", current)
+      this.queue.unshift(current[0])
+    } else {
+      const len = this.queue.unshift({ [key]: value })
+      if (len > 5) this.queue.pop()
+    }
+    window.localStorage.setItem(this.name, JSON.stringify(this.queue))
+  }
+}

@@ -9,8 +9,7 @@ const getCurrentMovie = () => {
 
 if (typeof startTime !== "undefined" && startTime) {
   videoObject.currentTime = startTime
-} else if (typeof movie !== "undefined" && window.localStorage.getItem(movie) !== null) {
-  const lastTime = window.localStorage.getItem(movie)
+} else if ((movie = getCurrentMovie()) !== null && (lastTime = new Fifo("currentTimes").get(movie)) !== null) {
   videoObject.currentTime = lastTime
 }
 
@@ -43,7 +42,7 @@ videoObject.addEventListener("click", event => {
 })
 
 videoObject.addEventListener("play", event => {
-  window.localStorage.setItem("lastPlayedMovie", getCurrentMovie())
+  new Fifo("lastPlayed").set(getCurrentMovie(), 1)
 })
 
 videoObject.addEventListener("timeupdate", event => {
@@ -66,12 +65,17 @@ videoObject.addEventListener("timeupdate", event => {
   }
 })
 
+videoObject.addEventListener("pause", event => {
+  new Fifo("currentTimes").set(getCurrentMovie(), videoObject.currentTime)
+})
+
 /*
  * video has finished
  * load next movie only if we were in fullscreen mode
  * it'll leave fullscreen when loading
  */
 videoObject.addEventListener("ended", event => {
+  new Fifo("currentTimes").set(getCurrentMovie(), videoObject.currentTime)
   const isFullScreen = ((window.fullScreen) || (window.innerWidth == screen.width && window.innerHeight == screen.height))
   fetch("/api/movie/next/" + getCurrentMovie(), { method: "GET", headers: {} }).then(r => {
     return r.json()
@@ -98,11 +102,10 @@ videoObject.addEventListener("seeked", event => {
 })
 
 // save progress
-// TODO switch to cookie with max-age
 window.addEventListener("unload", event => {
   // fires also on load, so wie just ignore if 0
   if (videoObject.currentTime !== 0) {
-    window.localStorage.setItem(movie, videoObject.currentTime)
+    new Fifo("currentTimes").set(movie, videoObject.currentTime)
   }
 })
 

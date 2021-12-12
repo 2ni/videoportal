@@ -1,12 +1,13 @@
 /*
  * show last played movie on home page
  */
-if (window.location.pathname === "/" && (lastPlayedMovie = window.localStorage.getItem("lastPlayedMovie")) !== null) {
+if (window.location.pathname === "/" && (lastPlayed = new Fifo("lastPlayed").get()) !== null && lastPlayed.length > 0) {
   const templateVideoBox = document.getElementById("templateVideoBox").innerHTML
   const moviesUl = document.querySelector("#movies-list .movies")
+  const movie = Object.keys(lastPlayed[0])[0]
   moviesUl.insertAdjacentHTML("afterbegin", templateVideoBox
-    .replace(/{{name}}/g, prettifyMovie(lastPlayedMovie))
-    .replace(/{{url}}/g, lastPlayedMovie)
+    .replace(/{{name}}/g, prettifyMovie(movie))
+    .replace(/{{url}}/g, movie)
   )
   moviesUl.firstElementChild.classList.add("last-played")
 }
@@ -31,8 +32,7 @@ videoObjects.forEach(videoObject => {
 
     // get duration of movie already seen and update progressbar
     const movieName = videoObject.querySelector("source").src.replace(/^.*\/movies\//, "")
-    if (window.localStorage.getItem(movieName) !== null) {
-      const durationSeen = window.localStorage.getItem(movieName)
+    if ((durationSeen = new Fifo("currentTimes").get(movieName)) !== null) {
       const progressElm = progressBarElm.querySelector(".progress")
       const progress = Math.round(100*durationSeen/videoObject.duration) + "%"
       progressElm.style.width = progress
