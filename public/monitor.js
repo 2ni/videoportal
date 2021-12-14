@@ -88,7 +88,7 @@ document.addEventListener("evt-loadmovie", event => {
   loadMovie(event.detail.movie)
 
   // show activity
-  updateRemoteControlActivity(event.detail.source, "Loaded movie")
+  updateRemoteControlActivity(event.detail.source, "Loaded movie " + prettifyMovie(getCurrentMovie()))
 })
 
 document.addEventListener("evt-movieended", event => {

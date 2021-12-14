@@ -9,6 +9,7 @@ const _startWebsocket = (id, clientType) => {
       + (window.location.protocol === "https" ? "s" : "")
       + "://" + window.location.hostname + (window.location.port ? ":" : "") + window.location.port
       + "?id=" + id + "&clientType=" + clientType + "&roomId=" + monitorId
+      + "&lastplayed=" + JSON.stringify(new Fifo("lastPlayed").get())
       + (dbg !== null ? "&dbg=" + dbg: "")
     console.log("opening websocket", wscmd)
 
@@ -143,7 +144,6 @@ const Fifo = class {
     if (index !== -1) {
       this.queue[index][key] = value
       let current = this.queue.splice(index, 1)
-      console.log("current", current)
       this.queue.unshift(current[0])
     } else {
       const len = this.queue.unshift({ [key]: value })

@@ -12,7 +12,7 @@ const wss = new WebSocketServer({ noServer: true, clientTracking: false, maxPayl
 const monitorsTable = new Map()       // id: wss
 const remoteControlsTable = new Map() // id: wss
 const roomsTable = new Map()          // id(monitorId) => id:{id, type}, id:{id, type}
-const roomsMeta = new Map()           // id(monitorId) => {movie:"", status:"", hasmonitor: false}
+const roomsMeta = new Map()           // id(monitorId) => {movie:"", status:"", hasmonitor: false, lastPlayed: json-string}
 let dbgMode = true
 
 const  DBG = (...args) => {
@@ -128,6 +128,7 @@ wss.on("connection", (ws, req) => {
   const clientType = parameters.query.clientType
   const roomId = parameters.query.roomId
   const clientId = parameters.query.id
+  const lastPlayed = parameters.query.lastplayed
   if (parameters.query.dbg === "true") dbgMode = true
   else if (parameters.query.dbg === "false") dbgMode = false
   else dbgMode = env === "localhost"
@@ -179,7 +180,7 @@ wss.on("connection", (ws, req) => {
       // unset meta if monitor joins
       let meta = roomsMeta.get(ws.id)
       if (meta) {
-        meta = { ...meta, ...{ status: "moviestopped", hasmonitor: true }}
+        meta = { ...meta, ...{ status: "moviestopped", hasmonitor: true, lastplayed: lastPlayed }}
         roomsMeta.set(ws.id, meta)
       }
 
@@ -205,7 +206,7 @@ wss.on("connection", (ws, req) => {
       reason = "roomadded"
       DBG("create room \"" + roomId + "\"")
       roomsTable.set(roomId, new Map())
-      const meta = { status: "moviestopped", movie: "", hasmonitor: ws.type === "monitor" }
+      const meta = { status: "moviestopped", movie: "", hasmonitor: ws.type === "monitor", lastplayed: lastPlayed }
       roomsMeta.set(roomId, meta)
       ws.send(JSON.stringify({ reason: "roomadded", id: roomId, meta: meta }))
     }
@@ -331,6 +332,7 @@ wss.on("connection", (ws, req) => {
         DBG("remove \"" + ws.id + "\" from room \"" + ws.id + "(" + (room.size || 0) + ")\"")
         let meta = roomsMeta.get(ws.id)
         meta.hasmonitor = false
+        meta.lastplayed = ""
         roomsMeta.set(ws.id, meta) // hasmonitor: false assumes we only have 1 monitor per room
         broadcast("room", ws.id, { reason: "left", id: ws.id, type: ws.type })
         // keep room as long as participants

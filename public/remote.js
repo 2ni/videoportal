@@ -76,6 +76,7 @@ const timestamp2human = (timestamp) => {
 }
 
 const getMovies = (dir = "") => {
+  const lastPlayedLI = moviesUl.querySelector(".last-played")
   fetch("/api/movies/" + dir, { method: "GET", headers: {} }).then(r => {
     return r.json()
   }).then(response => {
@@ -94,6 +95,11 @@ const getMovies = (dir = "") => {
       }
       mov.addEventListener("loadedmetadata", loadDuration)
     })
+
+    // re-include last-played if it was there
+    if (lastPlayedLI) {
+      moviesUl.insertAdjacentHTML("afterbegin", lastPlayedLI.outerHTML)
+    }
 
     // dirs
     dirsUl.innerHTML = ""
@@ -142,6 +148,30 @@ document.addEventListener("evt-roomdeleted", event => {
   }
 })
 
+// update last played
+const updateLastPlayed = (event) => {
+  const templateVideoBox = document.getElementById("templateVideoBox").innerHTML
+  const moviesUl = document.querySelector("#movies-list .movies")
+  const lastPlayedLI = moviesUl.querySelector(".last-played")
+  if (!event || !event.detail.meta.lastplayed) {
+    if (lastPlayedLI) lastPlayedLI.remove()
+    return
+  }
+  if (event.detail.meta.lastplayed) {
+    const movie = Object.keys(JSON.parse(event.detail.meta.lastplayed)[0])[0]
+    const lastPlayedHTML = templateVideoBox
+      .replace(/{{name}}/g, prettifyMovie(movie))
+      .replace(/{{url}}/g, movie)
+
+    if (lastPlayedLI) {
+      lastPlayedLI.outerHTML = lastPlayedHTML
+    } else {
+      moviesUl.insertAdjacentHTML("afterbegin", lastPlayedHTML)
+    }
+    moviesUl.firstElementChild.classList.add("last-played")
+  }
+}
+
 // room was changed
 document.addEventListener("evt-roomchanged", event => {
   hasMonitor = event.detail.meta.hasmonitor
@@ -150,6 +180,7 @@ document.addEventListener("evt-roomchanged", event => {
   if (optionElm) {
     optionElm.text = (event.detail.meta.hasmonitor ? "" : "\u23FE ") + event.detail.id
   }
+  updateLastPlayed(event)
 })
 
 // participant list
@@ -158,6 +189,7 @@ document.addEventListener("evt-participantlist", event => {
   hasMonitor = meta.hasmonitor
   updateRemoteStatus(meta)
   remoteEnabled(meta.movie)
+  updateLastPlayed(event)
 })
 
 // participant joined
@@ -258,6 +290,7 @@ roomList.addEventListener("change", event => {
   if (roomId === "---") {
     remoteEnabled(null)
     remoteMovie.innerText = ""
+    updateLastPlayed()
   }
 })
 
