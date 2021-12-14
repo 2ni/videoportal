@@ -9,7 +9,8 @@ const getCurrentMovie = () => {
 
 if (typeof startTime !== "undefined" && startTime) {
   videoObject.currentTime = startTime
-} else if ((movie = getCurrentMovie()) !== null && (lastTime = new Fifo("currentTimes").get(movie)) !== null) {
+} else if ((movie = getCurrentMovie()) && (lastTime = new Fifo("currentTimes").get(movie)) !== null) {
+  console.log("movie", movie)
   videoObject.currentTime = lastTime
 }
 
@@ -42,6 +43,10 @@ videoObject.addEventListener("click", event => {
 })
 
 videoObject.addEventListener("play", event => {
+  new Fifo("lastPlayed").set(getCurrentMovie(), 1)
+})
+
+videoObject.addEventListener("loadedmetadata", event => {
   new Fifo("lastPlayed").set(getCurrentMovie(), 1)
 })
 

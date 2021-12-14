@@ -68,7 +68,8 @@ videoObject.addEventListener("pause", event => {
 
 // video loaded
 videoObject.addEventListener("loadedmetadata", event => {
-  const cur = new Fifo("currentTimes").get(getCurrentMovie())
+  const m = getCurrentMovie()
+  const cur = new Fifo("currentTimes").get(m)
   if (cur) {
     videoObject.currentTime = (videoObject.duration - cur) < 0.2 ? (cur - 0.1) : cur
   }
