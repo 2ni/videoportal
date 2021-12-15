@@ -55,6 +55,14 @@ listen to http://<ip_of_your_rpi>:3002
 npm run dev
 ```
 
+### Create empty video from single image
+```
+convert -size 720x540 xc:black black.png
+ffmpeg -f image2 -i black.png black.mp4
+echo -n "data:video/mp4;base64," > black-base64.txt
+base64 black.mp4 >> black-base64.txt
+```
+
 ### Misc
 - https://www.npmjs.com/package/youtube-dl-exec
 - https://stackoverflow.com/questions/58873023/convert-file-with-any-extension-to-mp4-with-ffmpeg

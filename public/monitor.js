@@ -102,14 +102,13 @@ document.addEventListener("evt-movieended", event => {
  * notification about playing/stopped is sent on video eventlistener "play", "pause"
  */
 document.addEventListener("evt-playstop", event => {
-  const movieUrl = videoSource.getAttribute("src").replace(/^\/movies\//, "")
   if (videoObject.paused) {
     videoObject.play().then(() => {
       updateRemoteControlActivity(event.detail.source, "Started movie")
     })
     .catch(error => {
       showErrorOverlay(error)
-      ws.send(JSON.stringify({ reason: "movieplayingerror", msg: "remote not activated", movie: movieUrl, roomId: monitorId }))
+      ws.send(JSON.stringify({ reason: "movieplayingerror", msg: "remote not activated", movie: getCurrentMovie(), roomId: monitorId }))
       updateRemoteControlActivity(event.detail.source, "Tried to " + (videoObject.paused ? "start" : "stop") + " movie")
     })
   } else {
@@ -170,10 +169,10 @@ document.addEventListener("evt-participantlist", event => {
 
   // send movieloaded if meta has no information but monitor has movie loaded
   // (happens if wss restarts)
-  if (!event.detail.meta.movie && videoSource.getAttribute("src")) {
+  if (!event.detail.meta.movie && (m = getCurrentMovie())) {
     ws.send(JSON.stringify({
       reason: "movieloaded",
-      movie: videoSource.getAttribute("src").replace(/^\/movies\//, ""),
+      movie: m,
       roomId: monitorId,
       currenttime: videoObject.currentTime
     }))

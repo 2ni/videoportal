@@ -4,7 +4,9 @@ const overlayButton = overlay.querySelector("button")
 let nextMovieElm = null
 
 const getCurrentMovie = () => {
-  return videoObject.querySelector("source").getAttribute("src").replace(/^\/movies\//, "")
+  const m = videoObject.querySelector("source").getAttribute("src")
+  // do not return base64 code
+  return m && /^data/.test(m) ? "" : m.replace(/^\/movies\//, "")
 }
 
 if (typeof startTime !== "undefined" && startTime) {
@@ -43,11 +45,15 @@ videoObject.addEventListener("click", event => {
 })
 
 videoObject.addEventListener("play", event => {
-  new Fifo("lastPlayed").set(getCurrentMovie(), 1)
+  if (m = getCurrentMovie()) {
+    new Fifo("lastPlayed").set(m, 1)
+  }
 })
 
 videoObject.addEventListener("loadedmetadata", event => {
-  new Fifo("lastPlayed").set(getCurrentMovie(), 1)
+  if (m = getCurrentMovie()) {
+    new Fifo("lastPlayed").set(m, 1)
+  }
 })
 
 videoObject.addEventListener("timeupdate", event => {
