@@ -203,17 +203,19 @@ document.addEventListener("evt-joined", event => {
 
 // monitor loaded movie
 document.addEventListener("evt-movieloaded", event => {
-  remoteEnabled(event.detail.movie, event.detail.currenttime)
+  remoteEnabled(event.detail.meta.movie, event.detail.currenttime)
+  remotePlayStopText.innerText = "play_circle_filled"
+  updateLastPlayed(event)
 })
 
 // remote loaded movie
 document.addEventListener("evt-loadmovie", event => {
-  remoteEnabled(event.detail.movie)
+  remoteEnabled(event.detail.meta.movie)
 })
 
 // monitor can not  be controlled
 document.addEventListener("evt-movieplayingerror", event => {
-  remoteEnabled(event.detail.movie)
+  remoteEnabled(event.detail.meta.movie)
   remote.querySelector(".status").innerText = event.detail.msg
 })
 
@@ -221,7 +223,7 @@ document.addEventListener("evt-movieplayingerror", event => {
  * monitor got user interaction and we can remote control it
  */
 document.addEventListener("evt-remoteactivated", event => {
-  remoteEnabled(event.detail.movie, event.detail.currenttime)
+  remoteEnabled(event.detail.meta.movie, event.detail.currenttime)
   remote.querySelector(".status").innerText = ""
 })
 

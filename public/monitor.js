@@ -75,24 +75,30 @@ videoObject.addEventListener("loadedmetadata", event => {
   }
 
   // inform room
-  ws.send(JSON.stringify({ reason: "movieloaded", movie: m, roomId: monitorId, currenttime: videoObject.currentTime }))
+  ws.send(JSON.stringify({
+    reason: "movieloaded",
+    movie: m,
+    roomId: monitorId,
+    currenttime: videoObject.currentTime,
+    lastplayed: JSON.stringify(new Fifo("lastPlayed").get())
+  }))
 })
 
 document.addEventListener("evt-loadmovie", event => {
   // save old currenttime
-  if (videoObject.currentTime !=0 && movie) {
-    window.localStorage.setItem(movie, videoObject.currentTime)
+  if (videoObject.currentTime !=0 && (m = getCurrentMovie())) {
+    new Fifo("currentTimes").set(m, videoObject.currentTime)
   }
 
   // load movie
-  loadMovie(event.detail.movie)
+  loadMovie(event.detail.meta.movie)
 
   // show activity
   updateRemoteControlActivity(event.detail.source, "Loaded movie " + prettifyMovie(getCurrentMovie()))
 })
 
 document.addEventListener("evt-movieended", event => {
-  window.localStorage.setItem(movie, videoObject.currentTime)
+  new Fifo("currentTimes").set(getCurrentMovie(), videoObject.currentTime)
   loadMovie(event.detail.nextMovie)
   ws.send(JSON.stringify({ reason: "loadmovie", movie: event.detail.nextMovie, roomId: monitorId, currenttime: videoObject.currentTime }))
 })
@@ -113,7 +119,7 @@ document.addEventListener("evt-playstop", event => {
     })
   } else {
     videoObject.pause()
-    window.localStorage.setItem(movie, videoObject.currentTime)
+    new Fifo("currentTimes").set(getCurrentMovie(), videoObject.currentTime)
     updateRemoteControlActivity(event.detail.source, "Stopped movie")
   }
 })
@@ -174,7 +180,8 @@ document.addEventListener("evt-participantlist", event => {
       reason: "movieloaded",
       movie: m,
       roomId: monitorId,
-      currenttime: videoObject.currentTime
+      currenttime: videoObject.currentTime,
+      lastplayed: JSON.stringify(new Fifo("lastPlayed").get())
     }))
   }
   // load movie given from participantlist, eg if monitor joins / reloads and movie has already been set in room

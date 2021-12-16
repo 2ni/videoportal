@@ -308,14 +308,18 @@ wss.on("connection", (ws, req) => {
           ({ roomId, ...dataToSend } = data)
 
           let meta = roomsMeta.get(roomId)
+          // do not additionally send meta information separately. It's already in { meta: ... }
+          Object.keys(meta).map(k => { delete dataToSend[k] })
+
           if (["movieplaying", "moviestopped"].includes(data.reaon)) {
             meta.status = data.reason
             roomsMeta.set(roomId, meta)
           } else if (data.reason === "movieloaded" || data.reason === "loadmovie") {
+            if (data.lastplayed) meta.lastplayed = data.lastplayed
             meta.movie = data.movie
             roomsMeta.set(roomId, meta)
           }
-          broadcast("room", roomId, { ...{ "source": { id: ws.id, type: ws.type} }, ...dataToSend })
+          broadcast("room", roomId, { ...{ "source": { id: ws.id, type: ws.type} }, ...dataToSend, ...{ meta: meta } })
           break
       }
     } catch (e) {
