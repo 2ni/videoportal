@@ -12,7 +12,7 @@ const wss = new WebSocketServer({ noServer: true, clientTracking: false, maxPayl
 const monitorsTable = new Map()       // id: wss
 const remoteControlsTable = new Map() // id: wss
 const roomsTable = new Map()          // id(monitorId) => id:{id, type}, id:{id, type}
-const roomsMeta = new Map()           // id(monitorId) => {movie:"", status:"", hasmonitor: false, lastPlayed: json-string}
+const roomsMeta = new Map()           // id(monitorId) => {movie:"", status:"", hasmonitor: false, lastplayed: json-string}
 let dbgMode = true
 
 const  DBG = (...args) => {
@@ -315,7 +315,9 @@ wss.on("connection", (ws, req) => {
             meta.status = data.reason
             roomsMeta.set(roomId, meta)
           } else if (data.reason === "movieloaded" || data.reason === "loadmovie") {
-            if (data.lastplayed) meta.lastplayed = data.lastplayed
+            if (data.lastplayed) {
+              meta.lastplayed = data.lastplayed
+            }
             meta.movie = data.movie
             roomsMeta.set(roomId, meta)
           }

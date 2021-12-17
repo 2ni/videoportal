@@ -159,16 +159,18 @@ const updateLastPlayed = (event) => {
   }
   if (event.detail.meta.lastplayed) {
     const movie = Object.keys(JSON.parse(event.detail.meta.lastplayed)[0])[0]
-    const lastPlayedHTML = templateVideoBox
-      .replace(/{{name}}/g, prettifyMovie(movie))
-      .replace(/{{url}}/g, movie)
+    urlExists("/movies/" + movie, () => {
+      const lastPlayedHTML = templateVideoBox
+        .replace(/{{name}}/g, prettifyMovie(movie))
+        .replace(/{{url}}/g, movie)
 
-    if (lastPlayedLI) {
-      lastPlayedLI.outerHTML = lastPlayedHTML
-    } else {
-      moviesUl.insertAdjacentHTML("afterbegin", lastPlayedHTML)
-    }
-    moviesUl.firstElementChild.classList.add("last-played")
+      if (lastPlayedLI) {
+        lastPlayedLI.outerHTML = lastPlayedHTML
+      } else {
+        moviesUl.insertAdjacentHTML("afterbegin", lastPlayedHTML)
+      }
+      moviesUl.firstElementChild.classList.add("last-played")
+    })
   }
 }
 

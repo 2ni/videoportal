@@ -5,11 +5,13 @@ if (window.location.pathname === "/" && (lastPlayed = new Fifo("lastPlayed").get
   const templateVideoBox = document.getElementById("templateVideoBox").innerHTML
   const moviesUl = document.querySelector("#movies-list .movies")
   const movie = Object.keys(lastPlayed[0])[0]
-  moviesUl.insertAdjacentHTML("afterbegin", templateVideoBox
-    .replace(/{{name}}/g, prettifyMovie(movie))
-    .replace(/{{url}}/g, movie)
-  )
-  moviesUl.firstElementChild.classList.add("last-played")
+  urlExists("/movies/" + movie, () => {
+    moviesUl.insertAdjacentHTML("afterbegin", templateVideoBox
+      .replace(/{{name}}/g, prettifyMovie(movie))
+      .replace(/{{url}}/g, movie)
+    )
+    moviesUl.firstElementChild.classList.add("last-played")
+  })
 }
 
 /*

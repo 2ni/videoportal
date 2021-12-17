@@ -115,11 +115,24 @@ const prettifyMovie = (fn) => {
 }
 
 /*
+ * make HEAD call to check if resource exists
+ */
+const urlExists = (url, callback) => {
+  var http = new XMLHttpRequest()
+  http.open('HEAD', url)
+  http.onreadystatechange = function() {
+    if (this.readyState == this.DONE && this.status !== 404) {
+      callback()
+    }
+  }
+  http.send()
+}
+
+/*
  *  simple fifo list
  *  new Fifo("somename").set("foo", "bar)
  *  new Fifo("somename").get("foo")
  */
-
 const Fifo = class {
   constructor(name) {
     this.name = name

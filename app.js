@@ -79,6 +79,10 @@ server.on("upgrade", async (request, socket, head) => {
 
 app.get("/movies/:movie([^$]+)", (req, res) => {
   const moviePath = path.join(config.moviesBasePath, req.params.movie)
+  if (!fs.existsSync(moviePath)) {
+    return res.status(404).send({ error: "file not found"})
+  }
+
   const stat = fs.statSync(moviePath)
   const fileSize = stat.size
   const range = req.headers.range
@@ -109,6 +113,11 @@ app.get("/movies/:movie([^$]+)", (req, res) => {
 })
 
 app.get("/play/:movie([^$]+)", getBreadcrumbs, (req, res) => {
+  const moviePath = path.join(config.moviesBasePath, req.params.movie)
+  if (!fs.existsSync(moviePath)) {
+    return res.render("404")
+  }
+
   const nonce = crypto.randomBytes(16).toString("base64")
   res.set("Content-Security-Policy", "script-src 'self' 'nonce-" + nonce + "'")
   res.render("play", {
