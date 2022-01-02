@@ -7,7 +7,7 @@ import { timestamp } from "./helpers/utils.js"
 
 // we track clients on our own list
 // maxPayload in bytes
-const wss = new WebSocketServer({ noServer: true, clientTracking: false, maxPayload: 1024 })
+const wss = new WebSocketServer({ noServer: true, clientTracking: false, maxPayload: 4096 })
 
 const monitorsTable = new Map()       // id: wss
 const remoteControlsTable = new Map() // id: wss
