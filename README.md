@@ -20,15 +20,16 @@ npm install
 git clone...
 npm install
 sudo cp videoportal.service /etc/systemd/system/
-sudo systemctl [start|stop] videoportal
+sudo systemctl [start|stop|restart] videoportal
 sudo systemctl enable videoportal # to enable  on boot
-journalctl -u videoportal -f # for logging output
+journalctl -u videoportal -f # to show log output
 ```
 
 listen to http://<ip_of_your_rpi>:3002
 
 ### Reverse proxy setup
 - set static route on your router http://videoportal pointing to your rpi ip
+- to debug add `?dbg=true` to the url
 - add the following to nginx:
 ```
   server {
