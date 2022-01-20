@@ -169,7 +169,14 @@ app.get("/remote/:remoteId?/:monitorId?", async (req, res) => {
  */
 const walk = async (moviesDir, curPath, results={ movies: [], dirs: [] }) => {
   const files = await fsp.readdir(moviesDir, { withFileTypes: true })
-  for (const file of files) {
+
+  // sort by newest creation time first
+  const sorted = files
+    .map(fn => ({ obj: fn, time: fs.statSync(path.join(moviesDir, fn.name)).ctime }))
+    .sort((a, b) => b.time - a.time)
+    .map(file => file.obj)
+
+  for (const file of sorted) {
     const fullPath = path.join(moviesDir, file.name)
     const movieUrl = path.join(curPath, file.name)
     const movieName = capitalize(movieUrl.split("/").slice(-1)[0])
