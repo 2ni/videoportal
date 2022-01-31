@@ -21,7 +21,8 @@ git clone...
 npm install
 sudo cp videoportal.service /etc/systemd/system/
 sudo systemctl [start|stop|restart] videoportal
-sudo systemctl enable videoportal # to enable  on boot
+sudo systemctl [enable|disable] videoportal # to disable/enable  on boot
+sudo systemctl list-unit-files --type=service # to list if service starts on boot
 journalctl -u videoportal -f # to show log output
 ```
 
