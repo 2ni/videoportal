@@ -2,14 +2,14 @@
 Description=Videoportal
 
 [Service]
-ExecStart=/home/pi/videoportal/app.js
+ExecStart=/home/denis/www/videoportal/app.js
 Restart=always
-User=pi
+User=www-data
 # Note Debian/Ubuntu uses 'nogroup', RHEL/Fedora uses 'nobody'
-Group=pi
+Group=www-data
 Environment=PATH=/usr/bin:/usr/local/bin
 Environment=ENV=production
-WorkingDirectory=/home/pi/videoportal
+WorkingDirectory=/home/denis/www/videoportal
 
 [Install]
 WantedBy=multi-user.target
