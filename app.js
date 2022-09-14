@@ -33,8 +33,9 @@ app.set("views", "./views")
 app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors({
   origin: [
-    "http://localhost:3001",
-    "http://hironderlle:3001"
+    "http://localhost:3002",
+    "http://hirondelle:3002",
+    "http://videoportal"
   ]
 }))
 
