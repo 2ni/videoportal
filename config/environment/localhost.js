@@ -1,5 +1,5 @@
 const envConfig = {
-  port: 3001,
+  port: 3002,
   moviesBasePath: "movies"
 }
 

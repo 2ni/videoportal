@@ -1,6 +1,27 @@
 let ws = null
 let trial = 0
 
+// https://stackoverflow.com/questions/49916259/show-element-when-in-viewport-on-scroll
+const loadVideos = () => {
+  const innerHeight = window.innerHeight || document.documentElement.clientHeight
+  document.querySelectorAll("video").forEach(el => {
+    const bb = el.getBoundingClientRect()
+    // if within viewport and not yet loaded
+    if (el.preload !== "metadata" && !(bb.top > innerHeight || bb.bottom < 0)) {
+      console.log(el.querySelector("source").src, !(bb.top > innerHeight || bb.bottom < 0))
+      el.preload = "metadata"
+    }
+  })
+}
+
+document.addEventListener("DOMContentLoaded", event => {
+  loadVideos()
+})
+
+document.addEventListener("scroll", event => {
+  loadVideos()
+})
+
 const _startWebsocket = (id, clientType) => {
   if (id) {
     let dbg = new URLSearchParams(window.location.search).get("dbg")
