@@ -3,3 +3,7 @@
 movies/
 node_modules/
 *.swp
+*.log
+downloadlist
+.python-version
+movies

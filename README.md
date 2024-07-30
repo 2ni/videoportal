@@ -17,13 +17,55 @@ npm install
 
 ### Setup on production see [stackoverflow](https://stackoverflow.com/questions/4018154/how-do-i-run-a-node-js-app-as-a-background-service)
 ```
-git clone...
+mkdir -p /home/www/videoportal
+cd /home/www
+sudo chown -R denis:denis videoportal
+sudo -u denis git clone git@github.com:2ni/videoportal.git
+cd videoportal
 npm install
+cd ..
+sudo chgrp -R www-data videoportal
+ln -s /mnt/data/movies .                          # add movies directory (eg external usb drive)
+sudo usermod -aG www-data denis                   # add myself to group (probably not needed)
+sudo chmod g+s /home/www/videoportal              # add sticky bit so every file gets group of parent, ie www-data
 sudo cp videoportal.service /etc/systemd/system/
+sudo systemctl daemon-reload                      # to reload configs
 sudo systemctl [start|stop|restart] videoportal
-sudo systemctl [enable|disable] videoportal # to disable/enable  on boot
-sudo systemctl list-unit-files --type=service # to list if service starts on boot
+sudo systemctl [enable|disable] videoportal       # to disable/enable  on boot
+sudo systemctl list-unit-files --type=service     # to list if service starts on boot
 journalctl -u videoportal -f # to show log output
+```
+
+### Setup external usb drive
+see also [RaspberryPi](https://docs.google.com/document/d/1Doonk8PYe0l1jPQtM02R959S_Awvrqm1HeDRFwrLI7U/edit) doc
+```
+lsblk                      # find which drive, eg /dev/sda
+sudo umount /dev/sda1      # might not be mounted
+sudo umount /dev/sda2
+sudo fdisk /dev/sda
+> p                        # list partitions
+> d                        # choose partition to delete (2x)
+> w                        # write and exit
+sudo parted /dev/sda       # create new partition table
+> mklabel gpt
+> quit
+sudo parted /dev/sda
+> mkpart primary 0% 100%   # create a single partition that spans entire space
+> quit
+sudo mkfs.ext4 /dev/sda1   # format the partition
+sudo lsblk -f              # verify partition
+
+sudo mkdir -p /mnt/movies  # create mount endpoint
+sudo blkid                 # find UUID of partition  
+systemctl daemon-reload    # to reload fstab
+sudo vi /etc/fstab
+
+add the following line:
+UUID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx /mnt/data ext4 defaults 0 2
+sudo mount -a
+df -h                      # verify
+ls -ld /mnt/movies         # check permissions
+sudo chown -R denis:denis /mnt/data
 ```
 
 listen to http://<ip_of_your_rpi>:3002
